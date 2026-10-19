@@ -1,0 +1,108 @@
+# ============================================================
+# BossProgression - Configuration
+# ============================================================
+
+# Linear list of boss tiers. Tiers MUST be fought in ascending order.
+# 'tier' is the 1-based position in the progression.
+#
+# Phase 2: 'type' is optional (defaults to VANILLA) and selects how a tier is
+# defeated:
+#   VANILLA         - kill the configured 'entity-type' (default, backward compatible)
+#   MYTHIC_MOB      - kill a MythicMobs boss (hook activation is a separate follow-up)
+#   RAID            - win a raid; 'required-raid-waves' = minimum raid waves
+#                     (0 = no threshold). 'entity-type' is NOT allowed.
+#   STRUCTURE_CLEAR - clear a structure; 'required-spawner-clears' >= 1 and
+#                     'structure-kind' (TRIAL_CHAMBER | TEMPLE). Phase 2 only
+#                     implements event logic for TRIAL_CHAMBER; TEMPLE is
+#                     accepted but has no progression events yet.
+# Note: structure-clear counters are in-memory only and reset on server restart.
+boss-tiers:
+  warden:
+    tier: 1
+    entity-type: WARDEN
+    display-name: "&5&lThe Warden"
+    revive-item:
+      material: SCULK_CATALYST
+      custom-model-data: 1001
+      display-name: "&5Soul of the Warden"
+      pdc-key: revive
+      pdc-value: tier1
+  wither:
+    tier: 2
+    entity-type: WITHER
+    display-name: "&4&lThe Wither"
+    revive-item:
+      material: NETHER_STAR
+      custom-model-data: 1002
+      display-name: "&4Heart of the Wither"
+      pdc-key: revive
+      pdc-value: tier2
+  dragon:
+    tier: 3
+    entity-type: ENDER_DRAGON
+    display-name: "&3&lThe Ender Dragon"
+    revive-item:
+      material: ENDER_EYE
+      custom-model-data: 1003
+      display-name: "&3Eye of the Dragon"
+      pdc-key: revive
+      pdc-value: tier3
+  # Phase 2 examples (uncomment to use, keep tiers ascending):
+  # town-raid:
+  #   tier: 4
+  #   type: RAID
+  #   id: town-raid
+  #   display-name: "&6&lThe Pillager Raid"
+  #   required-raid-waves: 6   # victory only counts if the raid had >= 6 waves (0 = no threshold)
+  #   revive-item:
+  #     material: EMERALD
+  #     custom-model-data: 1004
+  #     display-name: "&aRaid Spoils"
+  #     pdc-key: revive
+  #     pdc-value: tier4
+  # trial-chamber:
+  #   tier: 5
+  #   type: STRUCTURE_CLEAR
+  #   id: trial-chamber
+  #   display-name: "&b&lThe Trial Chamber"
+  #   structure-kind: TRIAL_CHAMBER   # TEMPLE is accepted but has no event logic in Phase 2
+  #   required-spawner-clears: 2      # trial spawners must reach COMPLETED (in-memory, reset on restart)
+  #   revive-item:
+  #     material: TRIAL_KEY
+  #     custom-model-data: 1005
+  #     display-name: "&bTrial Key"
+  #     pdc-key: revive
+  #     pdc-value: tier5
+
+# Physical revive altar. Right-clicking the registered altar block
+# opens a GUI listing fallen players.
+altar:
+  enabled: true
+  block: CRYING_OBSIDIAN
+  particle: SOUL
+  sound: BLOCK_BEACON_ACTIVATE
+
+# Penalty applied to players in range when a boss spawn is out of sequence.
+penalty:
+  enabled: true
+  radius: 16.0
+  wither-amplifier: 1        # Wither II (amplifier 1)
+  slowness-amplifier: 3      # Slowness IV
+  effect-duration-ticks: 100 # 5 seconds
+  lightning-damage-percent: 25.0  # % of max health as instant damage
+
+# Hardmode: monster attributes scale with current boss tier.
+hardmode:
+  enabled: true
+  base-multiplier: 1.0
+  per-tier-multiplier: 0.5   # health/attack/speed multiplier = base + perTier * tier
+  nerf-health-regeneration: true
+  nerf-golden-apple: false
+
+# Permadeath settings.
+permadeath:
+  clear-inventory-on-death: false  # true = dead players lose their inventory
+
+# Data persistence settings.
+data:
+  auto-save-minutes: 5

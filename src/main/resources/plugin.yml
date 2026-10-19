@@ -1,0 +1,44 @@
+name: BossProgression
+version: '${project.version}'
+main: com.example.bossprogression.BossProgressionPlugin
+api-version: '1.21'
+description: Sequential boss progression with conditional permadeath and revive system.
+author: BossProgression Team
+softdepend: [MythicMobs]
+
+commands:
+  boss:
+    description: Show boss progression status.
+    usage: /<command> status
+  altar:
+    description: Show the coordinates of the revive altar.
+    usage: /<command>
+  revive:
+    description: Revive a fallen player by consuming the required boss drop.
+    usage: /<command> <player>
+  bossadmin:
+    description: Administration commands for boss progression.
+    usage: /<command> <settier|revive|setaltar|reload>
+    permission: bossplugin.admin
+
+permissions:
+  bossplugin.status:
+    description: Allows viewing /boss status.
+    default: true
+  bossplugin.revive:
+    description: Allows using /revive <player>.
+    default: true
+  bossplugin.altar:
+    description: Allows viewing /altar.
+    default: true
+  bossplugin.admin:
+    description: Allows all /bossadmin commands.
+    default: op
+  bossplugin.*:
+    description: Grants all boss progression permissions.
+    default: op
+    children:
+      bossplugin.status: true
+      bossplugin.revive: true
+      bossplugin.altar: true
+      bossplugin.admin: true

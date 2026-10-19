@@ -1,0 +1,56 @@
+# All player-facing messages. Supports & color codes and {placeholder}s.
+prefix: "&8[&6BossProgress&8] "
+
+no-permission: "&cYou don't have permission to do that."
+player-only: "&cThis command can only be used by players."
+unknown-player: "&cUnknown player: {player}"
+reloaded: "&aConfiguration reloaded successfully."
+
+boss-status:
+  current-tier: "&eCurrent tier: &f{tier}"
+  next-boss: "&eNext allowed boss: &f{boss} &7(Tier {tier})"
+  all-completed: "&eAll bosses have been defeated."
+  revive-item: "&eRequired revive item: &f{item}"
+
+premature-attempt:
+  spawn-cancelled: "&cThat boss cannot be challenged yet. You need to defeat previous bosses first!"
+  penalty-applied: "&cYour premature attempt has angered the void! &7(Wither, Slowness)"
+
+boss-killed:
+  global: "&6&l[BOSS DEFEATED] &e{boss} has been slain! Progression advances to Tier &f{tier}&e."
+  drop-message: "&a{item} has dropped from the boss."
+
+raid:
+  trigger-blocked: "&cThat raid cannot start yet. Defeat the previous bosses first!"
+  penalized: "&cThe raid's omens have been stripped and the void's wrath has been unleashed!"
+
+raid-cleared:
+  global: "&6&l[RAID CLEARED] &e{boss} has been defeated! Progression advances to Tier &f{tier}&e."
+  winner-item: "&aYou received &f{item}&a for your victory!"
+
+structure-cleared:
+  global: "&6&l[STRUCTURE CLEARED] &e{boss} has been cleared! Progression advances to Tier &f{tier}&e."
+
+structure:
+  interact-blocked: "&cYou cannot use that yet. Clear the current structure tier first!"
+  cleared:
+    progress: "&eStructure progress: &f{count}&e/&f{required}"
+    item-dropped: "&aThe revive item has been dropped at the structure."
+
+permadeath:
+  death-message: "&cYou have died and are now a ghost. Wait for a teammate to revive you."
+  revived: "&aYou have been revived! Brief invulnerability and regeneration granted."
+  revived-by: "&a{player} has been revived at the altar."
+  no-item: "&cYou don't have the required revive item for the current tier."
+  wrong-item: "&cThat item does not match the current boss tier."
+  no-dead-players: "&cThere are no fallen players to revive."
+  self-already-alive: "&c{player} is not dead."
+  cannot-revive-self: "&cYou cannot revive yourself."
+
+altar:
+  not-set: "&cNo altar has been registered yet. Use /bossadmin setaltar."
+  set: "&aAltar set to &f{x} &a/&fy &a/&f{z} &a&7({world})"
+  location: "&eRevive altar: &f{world} &7({x}, {y}, {z})"
+  gui-title: "Revive Altar"
+  dead-player-entry: "&c{player} &7- fallen"
+  no-altar-block: "&cThis block is not the registered altar."

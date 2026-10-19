@@ -6,6 +6,7 @@ import com.example.bossprogression.config.ReviveItemConfig;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.Test;
+import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
 import java.util.Optional;
 
@@ -86,18 +87,39 @@ class ReviveItemValidatorTest extends PluginTestBase {
     }
 
     @Test
-    void consumeOneDecrementsStack() {
+    void consumeOneDecrementsStackInRealInventory() {
         ReviveItemConfig config = witherConfig();
-        ItemStack[] contents = { config.createItem(plugin, 3), new ItemStack(Material.STONE) };
+        PlayerMock player = server.addPlayer("Looter");
+        player.getInventory().setItem(0, config.createItem(plugin, 3));
+        player.getInventory().setItem(1, new ItemStack(Material.STONE));
 
-        assertTrue(validator().consumeOne(contents, config));
-        assertEquals(2, contents[0].getAmount());
+        assertTrue(validator().consumeOne(player.getInventory(), config));
+        ItemStack stack = player.getInventory().getItem(0);
+        assertNotNull(stack);
+        assertEquals(2, stack.getAmount());
 
-        assertTrue(validator().consumeOne(contents, config));
-        assertTrue(validator().consumeOne(contents, config));
-        assertNull(contents[0]);
+        assertTrue(validator().consumeOne(player.getInventory(), config));
+        assertTrue(validator().consumeOne(player.getInventory(), config));
+        assertNull(player.getInventory().getItem(0));
 
-        assertFalse(validator().consumeOne(contents, config));
+        assertFalse(validator().consumeOne(player.getInventory(), config));
+    }
+
+    @Test
+    void consumeSingleItemClearsSlot() {
+        ReviveItemConfig config = witherConfig();
+        PlayerMock player = server.addPlayer("Solo");
+        player.getInventory().setItem(0, config.createItem(plugin, 1));
+        player.getInventory().setItem(5, new ItemStack(Material.STONE));
+
+        assertTrue(validator().consumeOne(player.getInventory(), config));
+        assertNull(player.getInventory().getItem(0));
+
+        // Rest of the inventory stays untouched.
+        ItemStack stone = player.getInventory().getItem(5);
+        assertNotNull(stone);
+        assertEquals(Material.STONE, stone.getType());
+        assertEquals(1, stone.getAmount());
     }
 
     @Test

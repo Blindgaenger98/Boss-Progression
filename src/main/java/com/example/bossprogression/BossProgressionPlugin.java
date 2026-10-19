@@ -141,6 +141,10 @@ public class BossProgressionPlugin extends JavaPlugin {
         return structureEventListener;
     }
 
+    public AltarManager altarManager() {
+        return altarManager;
+    }
+
     public BossHookManager hookManager() {
         return hookManager;
     }

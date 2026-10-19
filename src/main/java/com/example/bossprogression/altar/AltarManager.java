@@ -1,7 +1,6 @@
 package com.example.bossprogression.altar;
 
 import com.example.bossprogression.BossProgressionPlugin;
-import com.example.bossprogression.config.BossTier;
 import com.example.bossprogression.revive.ReviveItemValidator;
 import com.example.bossprogression.revive.ReviveManager;
 import org.bukkit.Bukkit;
@@ -129,8 +128,9 @@ public final class AltarManager {
     }
 
     /**
-     * Handles a click inside the altar GUI: revives the owner of the clicked slot
-     * and consumes one revive item from the clicking player's inventory.
+     * Handles a click inside the altar GUI: revives the owner of the clicked slot.
+     * The revive item is consumed exactly once, inside
+     * {@link ReviveManager#revive(Player, Player, Location, boolean, boolean)}.
      */
     public void handleGuiClick(Player player, int rawSlot) {
         int slot = rawSlot < 27 ? rawSlot : -1;
@@ -151,20 +151,16 @@ public final class AltarManager {
             return;
         }
 
-        BossTier tier = validator.latestUnlockedTier();
-        if (tier == null
-                || !validator.consumeOne(player.getInventory().getStorageContents(), tier.reviveItem())) {
+        Location altar = plugin.dataStore().getAltarLocation();
+        ReviveManager.ReviveResult result = reviveManager.revive(target, player, altar, false);
+        if (result == ReviveManager.ReviveResult.NO_ITEM) {
             plugin.messages().send(player, "permadeath.no-item");
             return;
         }
-
-        Location altar = plugin.dataStore().getAltarLocation();
-        ReviveManager.ReviveResult result = reviveManager.revive(target, player, altar, false);
         if (result != ReviveManager.ReviveResult.SUCCESS) {
-            // Should not happen (we consumed the item first); refund is out of scope,
-            // but log for debugging.
             plugin.getLogger().warning("Altar revive failed with result " + result
                     + " for target " + target.getName());
+            return;
         }
 
         // Refresh the GUI (dead player list changed).

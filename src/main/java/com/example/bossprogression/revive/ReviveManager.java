@@ -48,7 +48,8 @@ public final class ReviveManager {
     }
 
     /**
-     * Attempts to revive the given player.
+     * Attempts to revive the given player, consuming one revive item from the
+     * actor's inventory (unless forced).
      *
      * @param target  the dead (spectator) player to revive
      * @param actor   the player performing the revive (may be an admin for force revives)
@@ -58,6 +59,26 @@ public final class ReviveManager {
      * @return the result of the attempt
      */
     public ReviveResult revive(Player target, Player actor, Location location, boolean force) {
+        return revive(target, actor, location, force, !force);
+    }
+
+    /**
+     * Attempts to revive the given player.
+     * <p>
+     * Consumption happens here and only here: callers must NOT consume the revive
+     * item themselves (that used to cause a double consumption in the altar flow).
+     *
+     * @param target  the dead (spectator) player to revive
+     * @param actor   the player performing the revive (may be an admin for force revives)
+     * @param location where the target is teleported to (altar or actor location)
+     * @param force   when true, the dead check is bypassed (used by /bossadmin revive)
+     * @param consume when true (and not forced), one matching revive item is removed
+     *                from the actor's storage inventory; a missing item yields
+     *                {@link ReviveResult#NO_ITEM}
+     * @return the result of the attempt
+     */
+    public ReviveResult revive(Player target, Player actor, Location location,
+                               boolean force, boolean consume) {
         if (!force && !plugin.dataStore().isDead(target.getUniqueId())) {
             return ReviveResult.NOT_DEAD;
         }
@@ -65,10 +86,10 @@ public final class ReviveManager {
             return ReviveResult.CANNOT_REVIVE_SELF;
         }
 
-        if (!force) {
+        if (!force && consume) {
             BossTier tier = validator.latestUnlockedTier();
             if (tier == null
-                    || !validator.consumeOne(actor.getInventory().getStorageContents(), tier.reviveItem())) {
+                    || !validator.consumeOne(actor.getInventory(), tier.reviveItem())) {
                 return ReviveResult.NO_ITEM;
             }
         }

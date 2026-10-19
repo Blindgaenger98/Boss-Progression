@@ -5,6 +5,7 @@ import com.example.bossprogression.config.BossTier;
 import com.example.bossprogression.config.ReviveItemConfig;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -87,18 +88,24 @@ public final class ReviveItemValidator {
     }
 
     /**
-     * Consumes one matching item from the player's inventory (main inventory only).
+     * Consumes one matching item from the given inventory (storage contents only).
+     * <p>
+     * The mutation is written back to the real inventory via {@link Inventory#setItem},
+     * because {@link Inventory#getStorageContents()} returns a copy — assigning into
+     * that array (or mutating its item references) would have no effect on the player.
      *
      * @return true when an item was found and removed
      */
-    public boolean consumeOne(ItemStack[] contents, ReviveItemConfig expected) {
+    public boolean consumeOne(Inventory inventory, ReviveItemConfig expected) {
+        ItemStack[] contents = inventory.getStorageContents();
         for (int i = 0; i < contents.length; i++) {
             ItemStack item = contents[i];
             if (item != null && matches(item, expected)) {
                 if (item.getAmount() > 1) {
                     item.setAmount(item.getAmount() - 1);
+                    inventory.setItem(i, item);
                 } else {
-                    contents[i] = null;
+                    inventory.setItem(i, null);
                 }
                 return true;
             }

@@ -48,9 +48,9 @@ public final class HardmodeListener implements Listener {
             return;
         }
         if (event.getEntity() instanceof Player player
-                && player.getFoodLevel() == 20
-                && event.getFoodLevel() > event.getEntity().getFoodLevel()) {
-            // Only block the automatic regeneration tick (satiation reaching 20).
+                && player.getFoodLevel() < 20
+                && event.getFoodLevel() == 20) {
+            // Cap food at 19: block the automatic regeneration tick reaching 20.
             player.setFoodLevel(19);
         }
     }

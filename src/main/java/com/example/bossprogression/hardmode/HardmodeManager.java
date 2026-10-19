@@ -9,6 +9,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Monster;
 
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -19,7 +20,7 @@ import java.util.Map;
 public final class HardmodeManager {
 
     private final BossProgressionPlugin plugin;
-    private final Map<EntityType, Double> baseValues = new EnumMap<>(EntityType.class);
+    private final Map<EntityType, Map<Attribute, Double>> baseValues = new EnumMap<>(EntityType.class);
 
     public HardmodeManager(BossProgressionPlugin plugin) {
         this.plugin = plugin;
@@ -63,11 +64,13 @@ public final class HardmodeManager {
             return;
         }
         double current = instance.getValue();
-        Double cached = baseValues.get(entity.getType());
+        Map<Attribute, Double> perAttribute = baseValues.computeIfAbsent(
+                entity.getType(), type -> new HashMap<>());
+        Double cached = perAttribute.get(attribute);
         double base;
         if (cached == null || current <= cached) {
             base = current; // first time, or value was reduced by something else
-            baseValues.put(entity.getType(), base);
+            perAttribute.put(attribute, base);
         } else {
             base = cached;
         }

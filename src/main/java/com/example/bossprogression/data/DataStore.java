@@ -16,8 +16,8 @@ import java.util.UUID;
  * Persists runtime state in {@code data.yml}:
  * current boss tier, dead (spectator) players, and the registered altar location.
  * <p>
- * Saves are debounced: a dirty flag triggers an async save on the main thread
- * shortly after the last modification, plus a periodic auto-save task.
+ * Saves are debounced: a dirty flag schedules a save on the main thread shortly
+ * after the last modification, plus a periodic auto-save task.
  */
 public final class DataStore {
 
@@ -114,6 +114,12 @@ public final class DataStore {
         });
     }
 
+    /**
+     * Stops the periodic auto-save task and performs a final synchronous save.
+     * Call exactly once on disable (e.g. from {@code BossProgressionPlugin#onDisable});
+     * without the task cancel a stale auto-save could overwrite freshly loaded
+     * state after a {@code /reload}.
+     */
     public void shutdown() {
         if (autoSaveTaskId != -1) {
             Bukkit.getScheduler().cancelTask(autoSaveTaskId);
@@ -164,3 +170,4 @@ public final class DataStore {
         markDirty();
     }
 }
+

@@ -102,7 +102,9 @@ public class BossProgressionPlugin extends JavaPlugin {
             altarManager.close();
         }
         if (dataStore != null) {
-            dataStore.save();
+            // Finalizes persistence (cancel auto-save task + final save) so a /reload
+            // cannot overwrite freshly loaded data.yml with a stale auto-save.
+            dataStore.shutdown();
         }
         getLogger().info("Disabling BossProgression");
     }

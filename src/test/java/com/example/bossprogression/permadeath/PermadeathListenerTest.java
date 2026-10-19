@@ -5,15 +5,20 @@ import com.example.bossprogression.PluginTestBase;
 import io.papermc.paper.registry.keys.DamageTypeKeys;
 import net.kyori.adventure.text.Component;
 import org.bukkit.GameMode;
+import org.bukkit.Material;
 import org.bukkit.damage.DamageSource;
 import org.bukkit.damage.DamageType;
+import org.bukkit.entity.Item;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -81,5 +86,39 @@ class PermadeathListenerTest extends PluginTestBase {
         simulateJoin(player);
 
         assertEquals(GameMode.SPECTATOR, player.getGameMode());
+    }
+
+    @Test
+    void deathWithClearInventoryDropsAllItemsAndClearsInventory() {
+        plugin.getConfig().set("permadeath.clear-inventory-on-death", true);
+        plugin.saveConfig();
+        assertTrue(plugin.configManager().load(), "Config reload must pick up the new setting");
+        plugin.progressionManager().setTier(1);
+
+        PlayerMock player = server.addPlayer("Looted");
+        player.getInventory().setItem(0, new ItemStack(Material.IRON_SWORD));
+        player.getInventory().setArmorContents(new ItemStack[]{null, null, new ItemStack(Material.DIAMOND_CHESTPLATE), null});
+        player.getInventory().setItemInOffHand(new ItemStack(Material.SHIELD));
+        UUID uuid = player.getUniqueId();
+
+        simulateDeath(player);
+
+        assertTrue(plugin.dataStore().isDead(uuid));
+        assertEquals(GameMode.SPECTATOR, player.getGameMode());
+
+        List<Item> dropped = List.copyOf(world.getEntitiesByClass(Item.class));
+        assertEquals(3, dropped.size(), "Main slot, armor slot and offhand item must all be dropped");
+        List<Material> droppedMaterials = dropped.stream()
+                .map(item -> item.getItemStack().getType())
+                .sorted()
+                .collect(Collectors.toList());
+        assertEquals(List.of(Material.DIAMOND_CHESTPLATE, Material.IRON_SWORD, Material.SHIELD), droppedMaterials);
+
+        assertFalse(Arrays.stream(player.getInventory().getStorageContents()).anyMatch(stack -> stack != null),
+                "Storage contents must be empty after dropping");
+        assertFalse(Arrays.stream(player.getInventory().getArmorContents()).anyMatch(stack -> stack != null),
+                "Armor contents must be empty after dropping");
+        assertEquals(Material.AIR, player.getInventory().getItemInOffHand().getType(),
+                "Offhand must be empty after dropping");
     }
 }

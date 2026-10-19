@@ -5,14 +5,14 @@ import org.mockbukkit.mockbukkit.entity.ZombieMock;
 import com.example.bossprogression.PluginTestBase;
 import com.example.bossprogression.config.BossTier;
 import io.papermc.paper.registry.keys.DamageTypeKeys;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.damage.DamageSource;
 import org.bukkit.damage.DamageType;
+import org.bukkit.entity.Item;
 import org.bukkit.event.entity.EntityDeathEvent;
-import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -32,10 +32,14 @@ class BossDeathListenerTest extends PluginTestBase {
         return DamageSource.builder(type).build();
     }
 
-    private List<ItemStack> kill(WardenMock warden) {
-        List<ItemStack> drops = new ArrayList<>();
-        server.getPluginManager().callEvent(new EntityDeathEvent(warden, genericKill(), drops));
-        return drops;
+    /**
+     * Kills the warden at a fixed location in the test world and returns the
+     * item entities that ended up in the world afterwards.
+     */
+    private List<Item> kill(WardenMock warden) {
+        warden.setLocation(new Location(world, 0, 64, 0));
+        server.getPluginManager().callEvent(new EntityDeathEvent(warden, genericKill(), List.of()));
+        return List.copyOf(world.getEntitiesByClass(Item.class));
     }
 
     @Test
@@ -43,41 +47,52 @@ class BossDeathListenerTest extends PluginTestBase {
         plugin.progressionManager().setTier(1); // WARDEN (tier 1) is no longer the next boss
         WardenMock warden = new WardenMock(server, UUID.randomUUID());
 
-        List<ItemStack> drops = kill(warden);
+        List<Item> dropped = kill(warden);
 
         assertEquals(1, plugin.dataStore().getCurrentBossTier(), "Tier must not advance");
-        assertTrue(drops.isEmpty(), "No revive item may be dropped out of sequence");
+        assertTrue(dropped.isEmpty(), "No revive item may be dropped out of sequence");
     }
 
     @Test
     void inSequenceWardenDeathAdvancesProgression() {
-        kill(new WardenMock(server, UUID.randomUUID()));
+        WardenMock warden = new WardenMock(server, UUID.randomUUID());
+
+        List<Item> dropped = kill(warden);
 
         assertEquals(1, plugin.dataStore().getCurrentBossTier());
         assertNotNull(plugin.progressionManager().getNextAllowedBoss());
         assertEquals(2, plugin.progressionManager().getNextAllowedBoss().tierNumber());
+        assertEquals(1, dropped.size(), "Exactly one revive item must be dropped in sequence");
     }
 
     @Test
-    void inSequenceDeathAddsReviveItemToDrops() {
+    void inSequenceDeathDropsReviveItemAtBossLocation() {
         BossTier tier1 = plugin.configManager().getTier(1);
         assertNotNull(tier1);
         Material expected = tier1.reviveItem().getMaterial();
+        WardenMock warden = new WardenMock(server, UUID.randomUUID());
+        Location bossLocation = new Location(world, 0, 64, 0);
 
-        List<ItemStack> drops = kill(new WardenMock(server, UUID.randomUUID()));
+        warden.setLocation(bossLocation);
+        server.getPluginManager().callEvent(new EntityDeathEvent(warden, genericKill(), List.of()));
 
-        boolean hasReviveItem = drops.stream().anyMatch(item -> item.getType() == expected);
-        assertTrue(hasReviveItem, "Revive item of the defeated tier must be in the drops");
+        List<Item> dropped = List.copyOf(world.getEntitiesByClass(Item.class));
+        assertEquals(1, dropped.size(), "Exactly one item must be dropped");
+        assertEquals(expected, dropped.get(0).getItemStack().getType(),
+                "Revive item of the defeated tier must be dropped");
+        assertEquals(bossLocation.getBlockX(), dropped.get(0).getLocation().getBlockX());
+        assertEquals(bossLocation.getBlockY(), dropped.get(0).getLocation().getBlockY());
+        assertEquals(bossLocation.getBlockZ(), dropped.get(0).getLocation().getBlockZ());
         assertFalse(plugin.progressionManager().isProgressionComplete());
     }
 
     @Test
     void nonBossDeathIsIgnored() {
         ZombieMock zombie = new ZombieMock(server, UUID.randomUUID());
-        List<ItemStack> drops = new ArrayList<>();
-        server.getPluginManager().callEvent(new EntityDeathEvent(zombie, genericKill(), drops));
+        zombie.setLocation(new Location(world, 0, 64, 0));
+        server.getPluginManager().callEvent(new EntityDeathEvent(zombie, genericKill(), List.of()));
 
         assertEquals(0, plugin.dataStore().getCurrentBossTier());
-        assertTrue(drops.isEmpty());
+        assertTrue(world.getEntitiesByClass(Item.class).isEmpty());
     }
 }

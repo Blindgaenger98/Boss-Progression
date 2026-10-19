@@ -15,8 +15,8 @@ import java.util.Map;
 /**
  * Handles the completion of a boss fight.
  * When a configured boss entity dies and its tier is the next allowed one,
- * the progression advances and the boss's revive item is injected into the
- * loot drops (deterministic, one item per kill).
+ * the progression advances and the boss's revive item is dropped at the boss
+ * location (deterministic, one item per kill).
  */
 public final class BossDeathListener implements Listener {
 
@@ -52,9 +52,10 @@ public final class BossDeathListener implements Listener {
             return;
         }
 
-        // Inject the revive item into the boss loot.
+        // Drop the revive item at the boss location. getDrops() is read-only in
+        // Paper 26, so the item must be dropped via the world instead.
         ItemStack reviveItem = defeated.reviveItem().createItem(plugin, 1);
-        event.getDrops().add(reviveItem);
+        event.getEntity().getWorld().dropItemNaturally(event.getEntity().getLocation(), reviveItem);
 
         for (Player player : plugin.getServer().getOnlinePlayers()) {
             plugin.messages().send(player, "boss-killed.drop-message",

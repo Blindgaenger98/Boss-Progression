@@ -8,6 +8,11 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Implements the conditional permadeath rule:
@@ -37,10 +42,28 @@ public final class PermadeathListener implements Listener {
         }
 
         // Optional: drop inventory on death (config: permadeath.clear-inventory-on-death).
+        // getDrops() is read-only in Paper 26, so items are dropped via the world.
         if (plugin.configManager().isClearInventoryOnDeath()) {
-            event.getDrops().addAll(java.util.Arrays.asList(
-                    event.getEntity().getInventory().getStorageContents()));
-            event.getEntity().getInventory().clear();
+            PlayerInventory inventory = player.getInventory();
+            List<ItemStack> items = new ArrayList<>();
+            for (ItemStack item : inventory.getStorageContents()) {
+                if (item != null) {
+                    items.add(item);
+                }
+            }
+            for (ItemStack armor : inventory.getArmorContents()) {
+                if (armor != null) {
+                    items.add(armor);
+                }
+            }
+            ItemStack offhand = inventory.getItemInOffHand();
+            if (offhand != null) {
+                items.add(offhand);
+            }
+            for (ItemStack item : items) {
+                player.getWorld().dropItemNaturally(player.getLocation(), item);
+            }
+            inventory.clear();
         }
 
         player.setGameMode(GameMode.SPECTATOR);

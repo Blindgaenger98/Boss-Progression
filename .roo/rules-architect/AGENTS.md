@@ -1,0 +1,10 @@
+# Project Architecture Rules (Non-Obvious Only)
+
+- **Unidirectional data flow**: config (immutable `BossTier` records via `ConfigManager`) → `ProgressionManager` (sole tier mutator) → `DataStore` (persistence) → listeners/commands (read-only). Do not invert this; `DataStore` has no reference to managers.
+- `DataStore` is the **single source of truth** for runtime state; `ProgressionManager#getCurrentTier()` just reads it. Never cache the tier in another component.
+- `DataStore#save()` is **synchronized and main-thread-only** — all mutations go through `markDirty()` which schedules the actual save via `Bukkit.getScheduler().runTask` (debounced), plus a periodic auto-save task started in `load()`. Do not call `save()` from async code.
+- Listeners are constructed with a **single `BossProgressionPlugin` reference** and reach managers through it (`plugin.progressionManager()`, `plugin.dataStore()`) — this keeps listeners decoupled and testable under MockBukkit; do not introduce static singletons or cross-listener references.
+- `BossHook`/`BossHookManager` is an **anti-corruption layer**: every hook invocation is `try/catch (Throwable)` guarded so third-party plugin failures can never break core gameplay. New integrations MUST follow this contract; hooks are discovered via `PluginManager#isPluginEnabled` (softdepend in `plugin.yml`).
+- `SpawnGuardListener` is the **only** gate enforcing progression order (spawn + right-click veto + penalty); `BossDeathListener` detects valid kills → `ProgressionManager#advance()`. Adding a new enforcement path (e.g. damage-based) must reuse `ProgressionManager#isAllowed` rather than its own tier check.
+- `MythicMobsHook` is a **placeholder** (Phase 2): `isBossType` always returns false, spawn veto disabled — the vanilla tier list from config is authoritative in Phase 1. Architectural decisions for Phase 2 should extend, not replace, the `BossHook` interface.
+- Commands are a thin layer: `TabExecutor` implementations in `command/` read state via managers and send via `Messages` — no business logic in commands.

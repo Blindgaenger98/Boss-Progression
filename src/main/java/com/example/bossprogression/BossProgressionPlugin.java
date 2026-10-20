@@ -10,6 +10,7 @@ import com.example.bossprogression.config.ConfigManager;
 import com.example.bossprogression.data.DataStore;
 import com.example.bossprogression.hook.BossHookManager;
 import com.example.bossprogression.hardmode.HardmodeListener;
+import com.example.bossprogression.hardmode.HardmodeManager;
 import com.example.bossprogression.permadeath.PermadeathListener;
 import com.example.bossprogression.progression.BossDeathListener;
 import com.example.bossprogression.progression.PenaltyApplier;
@@ -34,6 +35,7 @@ public class BossProgressionPlugin extends JavaPlugin {
     private Messages messages;
     private ProgressionManager progressionManager;
     private PenaltyApplier penaltyApplier;
+    private HardmodeManager hardmodeManager;
     private StructureEventListener structureEventListener;
     private AltarManager altarManager;
     private BossHookManager hookManager;
@@ -59,6 +61,7 @@ public class BossProgressionPlugin extends JavaPlugin {
 
         this.progressionManager = new ProgressionManager(this);
         this.penaltyApplier = new PenaltyApplier(this);
+        this.hardmodeManager = new HardmodeManager(this);
 
         // Listeners.
         var pm = getServer().getPluginManager();
@@ -133,6 +136,10 @@ public class BossProgressionPlugin extends JavaPlugin {
 
     public ProgressionManager progressionManager() {
         return progressionManager;
+    }
+
+    public HardmodeManager hardmodeManager() {
+        return hardmodeManager;
     }
 
     public PenaltyApplier penaltyApplier() {

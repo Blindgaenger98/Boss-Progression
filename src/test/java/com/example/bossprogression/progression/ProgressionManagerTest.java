@@ -2,7 +2,14 @@ package com.example.bossprogression.progression;
 
 import com.example.bossprogression.PluginTestBase;
 import com.example.bossprogression.config.BossTier;
+import org.bukkit.Location;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.entity.LivingEntity;
 import org.junit.jupiter.api.Test;
+import org.mockbukkit.mockbukkit.entity.ZombieMock;
+
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -71,5 +78,48 @@ class ProgressionManagerTest extends PluginTestBase {
         assertEquals(2, manager().getCurrentTier());
         assertTrue(manager().setTier(0));
         assertEquals(0, manager().getCurrentTier());
+    }
+
+    @Test
+    void setTierToZeroClearsDeadPlayers() {
+        assertTrue(manager().setTier(1));
+        UUID dead = UUID.randomUUID();
+        plugin.dataStore().markDead(dead);
+        assertTrue(plugin.dataStore().isDead(dead));
+
+        assertTrue(manager().setTier(0));
+
+        assertFalse(plugin.dataStore().isDead(dead));
+        assertTrue(plugin.dataStore().getDeadPlayers().isEmpty());
+    }
+
+    @Test
+    void setTierResetsHardmodeBaseValueCache() {
+        // config defaults: multiplier = 1.0 + 0.5 * tier
+        assertTrue(manager().setTier(1)); // multiplier 1.5
+        ZombieMock zombie = zombie();
+        double base = maxHealth(zombie);
+
+        assertTrue(plugin.hardmodeManager().applyTo(zombie));
+        assertEquals(base * 1.5, maxHealth(zombie), 1e-9);
+
+        // setTier must invalidate the cached base value (documented contract);
+        // re-applying at tier 2 then scales from the current (already scaled)
+        // value instead of the stale cached base.
+        assertTrue(manager().setTier(2)); // multiplier 2.0
+        assertTrue(plugin.hardmodeManager().applyTo(zombie));
+
+        assertEquals(base * 1.5 * 2.0, maxHealth(zombie), 1e-9);
+    }
+
+    private ZombieMock zombie() {
+        ZombieMock zombie = new ZombieMock(server, UUID.randomUUID());
+        zombie.setLocation(new Location(world, 0, 64, 0));
+        return zombie;
+    }
+
+    private static double maxHealth(LivingEntity entity) {
+        AttributeInstance instance = entity.getAttribute(Attribute.MAX_HEALTH);
+        return instance == null ? 0.0 : instance.getBaseValue();
     }
 }

@@ -88,13 +88,24 @@ public final class ProgressionManager {
         return tier.type() + (tier.structureKind() != null ? "/" + tier.structureKind() : "");
     }
 
-    /** Admin override: set the tier manually. Returns false when the tier is out of range. */
+    /**
+     * Admin override: set the tier manually. Returns false when the tier is out of range.
+     * <p>
+     * Every tier change invalidates the hardmode base-value cache
+     * (see {@link com.example.bossprogression.hardmode.HardmodeManager#reset()});
+     * a reset to tier 0 additionally clears all dead players, which would
+     * otherwise be stuck without a revive item.
+     */
     public boolean setTier(int tier) {
         int max = plugin.configManager().getBossTiers().size();
         if (tier < 0 || tier > max) {
             return false;
         }
         plugin.dataStore().setCurrentBossTier(tier);
+        if (tier == 0) {
+            plugin.dataStore().clearDeadPlayers();
+        }
+        plugin.hardmodeManager().reset();
         plugin.getLogger().info("Tier manually set to " + tier);
         return true;
     }

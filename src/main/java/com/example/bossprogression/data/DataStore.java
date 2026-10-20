@@ -159,6 +159,16 @@ public final class DataStore {
         markDirty();
     }
 
+    /**
+     * Removes all dead players. Used on a full tier reset (tier 0): without this,
+     * dead players would be stuck - no tier-0 revive item exists and the altar
+     * GUI rejects them, leaving them in a dead-end spectator state.
+     */
+    public void clearDeadPlayers() {
+        deadPlayers.clear();
+        markDirty();
+    }
+
     // ---- altarLocation ----
 
     public Location getAltarLocation() {

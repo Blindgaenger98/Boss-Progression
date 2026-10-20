@@ -77,7 +77,12 @@ public final class HardmodeManager {
         instance.setBaseValue(base * multiplier);
     }
 
-    /** Resets cached base values, e.g. after /bossadmin settier or a reload. */
+    /**
+     * Resets the cached per-entity-type base attribute values.
+     * Called by {@link com.example.bossprogression.progression.ProgressionManager#setTier(int)}
+     * on every manual tier change (/bossadmin settier) so the cache cannot hold
+     * stale entries; it may also be called after a config reload.
+     */
     public void reset() {
         baseValues.clear();
     }

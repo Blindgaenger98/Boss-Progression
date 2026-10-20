@@ -19,17 +19,15 @@ import org.bukkit.Material;
 public final class HardmodeListener implements Listener {
 
     private final BossProgressionPlugin plugin;
-    private final HardmodeManager hardmodeManager;
 
     public HardmodeListener(BossProgressionPlugin plugin) {
         this.plugin = plugin;
-        this.hardmodeManager = new HardmodeManager(plugin);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntitySpawn(EntitySpawnEvent event) {
         if (event.getEntity() instanceof LivingEntity living) {
-            hardmodeManager.applyTo(living);
+            plugin.hardmodeManager().applyTo(living);
         }
     }
 
@@ -37,7 +35,7 @@ public final class HardmodeListener implements Listener {
     public void onEntityTeleport(EntityTeleportEvent event) {
         // Monsters loaded from chunks are not "spawned" - scale them on teleport too.
         if (event.getEntity() instanceof LivingEntity living) {
-            hardmodeManager.applyTo(living);
+            plugin.hardmodeManager().applyTo(living);
         }
     }
 

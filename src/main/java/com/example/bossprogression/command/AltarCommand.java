@@ -24,6 +24,11 @@ public final class AltarCommand implements TabExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (!sender.hasPermission("bossplugin.altar")) {
+            plugin.messages().send(sender, "no-permission");
+            return true;
+        }
+
         if (plugin.dataStore().getAltarLocation() == null) {
             plugin.messages().send(sender, "altar.not-set");
             return true;

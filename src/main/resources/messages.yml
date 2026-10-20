@@ -6,6 +6,9 @@ player-only: "&cThis command can only be used by players."
 unknown-player: "&cUnknown player: {player}"
 reloaded: "&aConfiguration reloaded successfully."
 
+admin:
+  reload-failed: "&cConfiguration reload failed - the previous configuration is still in effect. Check the console for details and fix config.yml, then retry."
+
 boss-status:
   current-tier: "&eCurrent tier: &f{tier}"
   next-boss: "&eNext allowed boss: &f{boss} &7(Tier {tier})"

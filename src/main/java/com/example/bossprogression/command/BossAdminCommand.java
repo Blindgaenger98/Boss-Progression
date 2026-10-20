@@ -120,11 +120,16 @@ public final class BossAdminCommand implements TabExecutor {
     }
 
     private void handleReload(CommandSender sender) {
-        plugin.configManager().load();
-        plugin.messages().reload();
-        plugin.dataStore().markDirty();
-        plugin.messages().send(sender, "reloaded");
-        plugin.getLogger().info("Admin " + sender.getName() + " reloaded configuration");
+        if (plugin.configManager().load()) {
+            plugin.messages().reload();
+            plugin.dataStore().markDirty();
+            plugin.messages().send(sender, "reloaded");
+            plugin.getLogger().info("Admin " + sender.getName() + " reloaded configuration");
+        } else {
+            plugin.messages().send(sender, "admin.reload-failed");
+            plugin.getLogger().severe("Admin " + sender.getName()
+                    + " attempted a config reload, but validation failed - previous configuration retained");
+        }
     }
 
     private void sendUsage(CommandSender sender) {

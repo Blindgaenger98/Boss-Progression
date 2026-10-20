@@ -12,47 +12,74 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Loads and validates {@code config.yml}. All configuration objects are immutable
- * and replaced atomically on reload.
+ * Loads and validates {@code config.yml}. All configuration objects are immutable.
+ *
+ * <p>Reloads are atomic: every part of the configuration is parsed and validated
+ * into local variables first; only when ALL parts loaded successfully are the
+ * fields published (volatile) in a single step. On any failure the previously
+ * loaded configuration is retained unchanged and {@link #load()} returns
+ * {@code false}.
  */
 public final class ConfigManager {
 
     private final BossProgressionPlugin plugin;
 
-    private List<BossTier> bossTiers = Collections.emptyList();
-    private AltarConfig altarConfig;
-    private PenaltyConfig penaltyConfig;
-    private HardmodeConfig hardmodeConfig;
-    private boolean clearInventoryOnDeath = false;
-    private int autoSaveMinutes = 5;
+    private volatile List<BossTier> bossTiers = Collections.emptyList();
+    private volatile AltarConfig altarConfig;
+    private volatile PenaltyConfig penaltyConfig;
+    private volatile HardmodeConfig hardmodeConfig;
+    private volatile boolean clearInventoryOnDeath = false;
+    private volatile int autoSaveMinutes = 5;
 
     public ConfigManager(BossProgressionPlugin plugin) {
         this.plugin = plugin;
     }
 
     /**
-     * Loads the configuration from disk.
+     * Loads the configuration from disk. The reload is atomic: all parts are
+     * parsed and validated into local variables first and only published as a
+     * whole when every part loaded successfully. If any part fails, the
+     * previously loaded configuration is retained unchanged (no hybrid state)
+     * and the error is logged with context.
      *
-     * @return true if valid, false if the plugin should disable itself
+     * @return true if the configuration was loaded successfully, false if
+     *         validation failed (previous values are retained)
      */
     public boolean load() {
         plugin.reloadConfig();
         FileConfiguration cfg = plugin.getConfig();
 
+        List<BossTier> newBossTiers;
+        AltarConfig newAltarConfig;
+        PenaltyConfig newPenaltyConfig;
+        HardmodeConfig newHardmodeConfig;
+        boolean newClearInventoryOnDeath;
+        int newAutoSaveMinutes;
         try {
-            this.bossTiers = loadBossTiers(cfg);
-            this.altarConfig = loadAltar(cfg);
-            this.penaltyConfig = loadPenalty(cfg);
-            this.hardmodeConfig = loadHardmode(cfg);
-            this.clearInventoryOnDeath = cfg.getBoolean("permadeath.clear-inventory-on-death", false);
-            this.autoSaveMinutes = Math.max(1, cfg.getInt("data.auto-save-minutes", 5));
+            newBossTiers = loadBossTiers(cfg);
+            newAltarConfig = loadAltar(cfg);
+            newPenaltyConfig = loadPenalty(cfg);
+            newHardmodeConfig = loadHardmode(cfg);
+            newClearInventoryOnDeath = cfg.getBoolean("permadeath.clear-inventory-on-death", false);
+            newAutoSaveMinutes = Math.max(1, cfg.getInt("data.auto-save-minutes", 5));
         } catch (IllegalArgumentException e) {
-            plugin.getLogger().severe("Configuration error: " + e.getMessage());
+            plugin.getLogger().severe("Configuration reload failed (" + e.getMessage()
+                    + ") - previously loaded configuration retained.");
             return false;
         }
 
+        // Publish atomically: every value above is fully validated, so the
+        // fields can be replaced in one step without any hybrid state.
+        this.bossTiers = newBossTiers;
+        this.altarConfig = newAltarConfig;
+        this.penaltyConfig = newPenaltyConfig;
+        this.hardmodeConfig = newHardmodeConfig;
+        this.clearInventoryOnDeath = newClearInventoryOnDeath;
+        this.autoSaveMinutes = newAutoSaveMinutes;
+
         plugin.getLogger().info(String.format("Loaded %d boss tier(s), altar=%s, penalty=%s, hardmode=%s",
-                bossTiers.size(), altarConfig.isEnabled(), penaltyConfig.isEnabled(), hardmodeConfig.isEnabled()));
+                newBossTiers.size(), newAltarConfig.isEnabled(),
+                newPenaltyConfig.isEnabled(), newHardmodeConfig.isEnabled()));
         return true;
     }
 

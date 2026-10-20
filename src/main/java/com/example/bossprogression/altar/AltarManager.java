@@ -14,6 +14,7 @@ import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -27,9 +28,6 @@ public final class AltarManager {
     private final BossProgressionPlugin plugin;
     private final ReviveManager reviveManager;
     private final ReviveItemValidator validator;
-
-    /** Maps inventory slot -> dead player UUID for the altar GUI. */
-    private final Map<Integer, UUID> slotOwners = new HashMap<>();
 
     /** Player UUID -> open altar GUI task (to close it when they move away). */
     private final Map<UUID, BukkitTask> openTasks = new HashMap<>();
@@ -90,15 +88,23 @@ public final class AltarManager {
             return false;
         }
 
-        slotOwners.clear();
-        Inventory gui = Bukkit.createInventory(null, 27,
+        List<UUID> deadList = new ArrayList<>();
+        for (UUID uuid : dead) {
+            if (deadList.size() >= 27) {
+                break;
+            }
+            deadList.add(uuid);
+        }
+
+        // Per-player holder: the slot -> dead player mapping lives on the GUI
+        // inventory itself, so GUIs of different players can never corrupt
+        // each other's mappings (review Top-10 #6).
+        AltarGuiHolder holder = new AltarGuiHolder(player.getUniqueId(), deadList);
+        Inventory gui = Bukkit.createInventory(holder, 27,
                 plugin.messages().plain("altar.gui-title"));
 
         int slot = 0;
-        for (UUID uuid : dead) {
-            if (slot >= 27) {
-                break;
-            }
+        for (UUID uuid : deadList) {
             String name = Bukkit.getOfflinePlayer(uuid).getName();
             ItemStack entry = new ItemStack(Material.PLAYER_HEAD, 1);
             ItemMeta meta = entry.getItemMeta();
@@ -108,7 +114,6 @@ public final class AltarManager {
                 entry.setItemMeta(meta);
             }
             gui.setItem(slot, entry);
-            slotOwners.put(slot, uuid);
             slot++;
         }
 
@@ -129,15 +134,23 @@ public final class AltarManager {
 
     /**
      * Handles a click inside the altar GUI: revives the owner of the clicked slot.
+     * <p>
+     * The slot -> dead player mapping is resolved from the per-player
+     * {@link AltarGuiHolder} attached to the GUI the player actually opened,
+     * so other players opening their own GUIs cannot corrupt this mapping.
      * The revive item is consumed exactly once, inside
      * {@link ReviveManager#revive(Player, Player, Location, boolean, boolean)}.
      */
-    public void handleGuiClick(Player player, int rawSlot) {
+    public void handleGuiClick(Player player, AltarGuiHolder holder, int rawSlot) {
         int slot = rawSlot < 27 ? rawSlot : -1;
         if (slot < 0) {
             return;
         }
-        UUID uuid = slotOwners.get(slot);
+        if (!holder.getOwnerId().equals(player.getUniqueId())) {
+            // Defensive: this player does not own the given GUI instance.
+            return;
+        }
+        UUID uuid = holder.getSlotOwner(slot);
         if (uuid == null) {
             return;
         }

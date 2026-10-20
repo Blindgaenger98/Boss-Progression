@@ -72,7 +72,7 @@ public class BossProgressionPlugin extends JavaPlugin {
         structureEventListener.startPolling();
 
         this.altarManager = new AltarManager(this);
-        pm.registerEvents(new AltarListener(altarManager), this);
+        pm.registerEvents(new AltarListener(this), this);
 
         // Commands.
         registerCommand("boss", new BossStatusCommand(this));

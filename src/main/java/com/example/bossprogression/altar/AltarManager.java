@@ -2,6 +2,7 @@ package com.example.bossprogression.altar;
 
 import com.example.bossprogression.BossProgressionPlugin;
 import com.example.bossprogression.revive.ReviveItemValidator;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import com.example.bossprogression.revive.ReviveManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -109,8 +110,11 @@ public final class AltarManager {
             ItemStack entry = new ItemStack(Material.PLAYER_HEAD, 1);
             ItemMeta meta = entry.getItemMeta();
             if (meta != null) {
-                meta.setDisplayName(plugin.messages().plain("altar.dead-player-entry",
-                        Map.of("player", name == null ? "?" : name)));
+                // Paper 26.x: display names are Adventure Components —
+                // 'plain(...)' already returns legacy (§) color codes.
+                meta.displayName(LegacyComponentSerializer.legacySection()
+                        .deserialize(plugin.messages().plain("altar.dead-player-entry",
+                                Map.of("player", name == null ? "?" : name))));
                 entry.setItemMeta(meta);
             }
             gui.setItem(slot, entry);

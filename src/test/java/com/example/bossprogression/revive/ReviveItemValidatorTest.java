@@ -3,8 +3,12 @@ package com.example.bossprogression.revive;
 import com.example.bossprogression.PluginTestBase;
 import com.example.bossprogression.config.BossTier;
 import com.example.bossprogression.config.ReviveItemConfig;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
@@ -84,6 +88,76 @@ class ReviveItemValidatorTest extends PluginTestBase {
 
         ItemStack vanilla = new ItemStack(Material.ENDER_EYE);
         assertFalse(validator().matches(vanilla, config));
+    }
+
+    @Test
+    void displayNameFallbackMatchesComponentSetManually() {
+        // Paper 26.x: ItemMeta#displayName() is an Adventure Component — the
+        // validator must compare Component to Component.
+        ReviveItemConfig config = new ReviveItemConfig(Material.ENDER_EYE, 0, "&2Eye", null, null);
+
+        ItemStack item = new ItemStack(Material.ENDER_EYE);
+        ItemMeta meta = item.getItemMeta();
+        assertNotNull(meta);
+        // '&2' in the config is dark green — the manually built Component must
+        // use the same color to match.
+        meta.displayName(Component.text("Eye").color(NamedTextColor.DARK_GREEN));
+        item.setItemMeta(meta);
+        assertTrue(validator().matches(item, config),
+                "manually set Component display name must match the config display name");
+
+        // Deviating display name: no match via the display-name path.
+        ItemStack wrong = new ItemStack(Material.ENDER_EYE);
+        ItemMeta wrongMeta = wrong.getItemMeta();
+        assertNotNull(wrongMeta);
+        wrongMeta.displayName(Component.text("Soul").color(NamedTextColor.GREEN));
+        wrong.setItemMeta(wrongMeta);
+        assertFalse(validator().matches(wrong, config),
+                "deviating display name must not match");
+    }
+
+    @Test
+    void nullDisplayNameOnItemFallsBackWithoutCrash() {
+        ReviveItemConfig config = new ReviveItemConfig(Material.ENDER_EYE, 0, "&2Eye", null, null);
+        // Item with meta but no display name: must not crash, simply no match.
+        ItemStack unnamed = new ItemStack(Material.ENDER_EYE);
+        ItemMeta meta = unnamed.getItemMeta();
+        assertNotNull(meta);
+        unnamed.setItemMeta(meta); // ensure meta is non-null but has no display name
+        assertFalse(validator().matches(unnamed, config),
+                "item without display name must not match a config expecting one");
+
+        // Config expecting no display name: unnamed item matches, named item does not.
+        ReviveItemConfig bare = new ReviveItemConfig(Material.ENDER_EYE, 0, null, null, null);
+        assertTrue(validator().matches(unnamed, bare),
+                "item without display name must match a config expecting none");
+
+        ItemStack named = config.createItem(plugin, 1);
+        assertFalse(validator().matches(named, bare),
+                "item with display name must not match a config expecting none");
+    }
+
+    @Test
+    void createItemProducesExpectedDisplayNameComponent() {
+        ReviveItemConfig config = new ReviveItemConfig(Material.NETHER_STAR, 1002, "&3Wither Core", "revive", "tier2");
+        ItemStack item = config.createItem(plugin, 1);
+
+        ItemMeta meta = item.getItemMeta();
+        assertNotNull(meta);
+        assertTrue(meta.hasDisplayName());
+        Component actual = meta.displayName();
+        assertNotNull(actual);
+        // Serialize back to legacy: the config's '&'-codes must round-trip.
+        assertEquals(ChatColor.translateAlternateColorCodes('&', config.getDisplayName()),
+                net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+                        .legacySection().serialize(actual));
+
+        // Null display name in config: item is created without a display name (no NPE).
+        ReviveItemConfig noName = new ReviveItemConfig(Material.NETHER_STAR, 0, null, "revive", "tier2");
+        ItemStack bareItem = noName.createItem(plugin, 1);
+        ItemMeta bareMeta = bareItem.getItemMeta();
+        assertNotNull(bareMeta);
+        assertFalse(bareMeta.hasDisplayName());
     }
 
     @Test

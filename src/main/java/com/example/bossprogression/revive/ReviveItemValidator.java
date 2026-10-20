@@ -3,7 +3,9 @@ package com.example.bossprogression.revive;
 import com.example.bossprogression.BossProgressionPlugin;
 import com.example.bossprogression.config.BossTier;
 import com.example.bossprogression.config.ReviveItemConfig;
+import net.kyori.adventure.text.Component;
 import org.bukkit.ChatColor;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -65,7 +67,7 @@ public final class ReviveItemValidator {
             // Bare material without meta: only valid if the config expects no meta at all.
             return expected.getCustomModelData() == 0
                     && (expected.getPdcKey() == null || expected.getPdcKey().isEmpty())
-                    && expected.getDisplayName() == null;
+                    && isBlank(expected.getDisplayName());
         }
 
         // 1) PDC tag (strongest signal, plugin-owned).
@@ -82,9 +84,22 @@ public final class ReviveItemValidator {
         }
 
         // 3) Display name (fallback, most fragile).
-        String expectedName = ChatColor.translateAlternateColorCodes('&',
-                expected.getDisplayName() == null ? "" : expected.getDisplayName());
-        return expectedName.equals(meta.getDisplayName());
+        // Paper 26.x: the display name is an Adventure Component (displayName()).
+        // Compare via legacy serialization: structural Component equality is
+        // fragile (decoration metadata differs between hand-built and
+        // deserialized components), while the §-string is a stable canonical form.
+        String expectedName = expected.getDisplayName();
+        if (isBlank(expectedName)) {
+            // Config expects no display name: only bare items match.
+            return !meta.hasDisplayName();
+        }
+        Component actualComponent = meta.displayName();
+        if (actualComponent == null) {
+            return false;
+        }
+        String expectedLegacy = ChatColor.translateAlternateColorCodes('&', expectedName);
+        String actualLegacy = LegacyComponentSerializer.legacySection().serialize(actualComponent);
+        return expectedLegacy.equals(actualLegacy);
     }
 
     /**
@@ -111,6 +126,11 @@ public final class ReviveItemValidator {
             }
         }
         return false;
+    }
+
+    /** @return true when the given display name string is null or blank. */
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     /**

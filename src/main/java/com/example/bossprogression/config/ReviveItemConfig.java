@@ -1,5 +1,7 @@
 package com.example.bossprogression.config;
 
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.plugin.Plugin;
@@ -7,7 +9,6 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.ChatColor;
 
 /**
  * Immutable description of the revive item a boss tier drops.
@@ -60,7 +61,15 @@ public final class ReviveItemConfig {
         ItemStack item = new ItemStack(material, amount);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', displayName));
+            if (displayName != null && !displayName.isBlank()) {
+                // Paper 26.x: display names are Adventure Components —
+                // never use the deprecated setDisplayName(String).
+                meta.displayName(LegacyComponentSerializer.legacySection()
+                        .deserialize(ChatColor.translateAlternateColorCodes('&', displayName)));
+            } else if (displayName == null) {
+                plugin.getLogger().warning(
+                        "Revive item '" + material.name() + "' has a null display name; item is created without one");
+            }
             if (customModelData > 0) {
                 meta.setCustomModelData(customModelData);
             }

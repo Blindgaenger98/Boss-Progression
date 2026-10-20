@@ -7,9 +7,10 @@ target/
 .classpath
 .project
 .settings/
+.vscode/
 
 # OS
 .DS_Store
 Thumbs.db
 .roo/mcp.json
-/.vscode/*
+

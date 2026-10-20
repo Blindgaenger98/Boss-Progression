@@ -90,6 +90,7 @@ penalty:
   slowness-amplifier: 3      # Slowness IV
   effect-duration-ticks: 100 # 5 seconds
   lightning-damage-percent: 25.0  # % of max health as instant damage
+  cooldown-seconds: 5        # per-player cooldown between penalties (0 = no cooldown)
 
 # Hardmode: monster attributes scale with current boss tier.
 hardmode:

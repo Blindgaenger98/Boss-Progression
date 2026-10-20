@@ -11,15 +11,17 @@ public final class PenaltyConfig {
     private final int slownessAmplifier;
     private final int effectDurationTicks;
     private final double lightningDamagePercent;
+    private final int cooldownSeconds;
 
     public PenaltyConfig(boolean enabled, double radius, int witherAmplifier, int slownessAmplifier,
-                         int effectDurationTicks, double lightningDamagePercent) {
+                         int effectDurationTicks, double lightningDamagePercent, int cooldownSeconds) {
         this.enabled = enabled;
         this.radius = radius;
         this.witherAmplifier = witherAmplifier;
         this.slownessAmplifier = slownessAmplifier;
         this.effectDurationTicks = effectDurationTicks;
         this.lightningDamagePercent = lightningDamagePercent;
+        this.cooldownSeconds = cooldownSeconds;
     }
 
     public boolean isEnabled() {
@@ -44,5 +46,10 @@ public final class PenaltyConfig {
 
     public double getLightningDamagePercent() {
         return lightningDamagePercent;
+    }
+
+    /** Cooldown between two penalties per player, in seconds (0 = no cooldown). */
+    public int getCooldownSeconds() {
+        return cooldownSeconds;
     }
 }

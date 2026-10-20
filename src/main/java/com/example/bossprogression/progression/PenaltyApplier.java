@@ -10,14 +10,26 @@ import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * Applies the configured penalty (wither, slowness, percentage lightning damage)
  * to players. Shared by the spawn guard, raid listener and structure listener.
  * Players with {@code bossplugin.admin} are always exempt.
+ *
+ * <p>Per-player cooldown: within {@code penalty.cooldown-seconds} after a penalty
+ * was applied, further penalties for the same player are skipped (checked after
+ * the admin exemption, before any effect is applied). Timestamps use the server
+ * tick counter so the cooldown is deterministic and testable.</p>
  */
 public final class PenaltyApplier {
 
     private final BossProgressionPlugin plugin;
+
+    /** Last penalty tick per player UUID; removed when the player disconnects. */
+    private final Map<UUID, Long> lastPenaltyTicks = new ConcurrentHashMap<>();
 
     public PenaltyApplier(BossProgressionPlugin plugin) {
         this.plugin = plugin;
@@ -37,7 +49,8 @@ public final class PenaltyApplier {
     }
 
     /**
-     * Applies the penalty to a single player (admin players are exempt).
+     * Applies the penalty to a single player (admin players are exempt, players
+     * within the per-player cooldown are skipped silently).
      */
     public void applyTo(Player player, BossTier offendingTier) {
         PenaltyConfig penalty = plugin.configManager().getPenaltyConfig();
@@ -47,6 +60,10 @@ public final class PenaltyApplier {
         if (player.hasPermission("bossplugin.admin")) {
             return; // admins are exempt
         }
+        if (onCooldown(player, penalty.getCooldownSeconds())) {
+            return; // inside per-player cooldown, skip silently
+        }
+        lastPenaltyTicks.put(player.getUniqueId(), currentTick());
 
         String bossName = offendingTier.displayName().replace('&', '\u00a7');
         player.addPotionEffect(new PotionEffect(
@@ -64,5 +81,31 @@ public final class PenaltyApplier {
         plugin.messages().send(player, "premature-attempt.spawn-cancelled");
         player.sendActionBar(LegacyComponentSerializer.legacySection()
                 .deserialize("&c" + bossName + " is not ready yet!"));
+    }
+
+    /**
+     * Called on player quit to keep the cooldown map free of stale entries.
+     */
+    public void onPlayerQuit(UUID playerId) {
+        lastPenaltyTicks.remove(playerId);
+    }
+
+    /**
+     * @return true if the player's last penalty was applied less than
+     *         {@code cooldownSeconds} (in ticks: seconds * 20) ago.
+     */
+    private boolean onCooldown(Player player, int cooldownSeconds) {
+        if (cooldownSeconds <= 0) {
+            return false; // cooldown disabled
+        }
+        Long last = lastPenaltyTicks.get(player.getUniqueId());
+        if (last == null) {
+            return false;
+        }
+        return currentTick() - last < cooldownSeconds * 20L;
+    }
+
+    private long currentTick() {
+        return plugin.getServer().getCurrentTick();
     }
 }

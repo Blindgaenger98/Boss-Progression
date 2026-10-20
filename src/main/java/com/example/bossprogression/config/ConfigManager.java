@@ -184,7 +184,8 @@ public final class ConfigManager {
                 s.getInt("wither-amplifier", 1),
                 s.getInt("slowness-amplifier", 3),
                 s.getInt("effect-duration-ticks", 100),
-                s.getDouble("lightning-damage-percent", 25.0));
+                s.getDouble("lightning-damage-percent", 25.0),
+                Math.max(0, s.getInt("cooldown-seconds", 5)));
     }
 
     private HardmodeConfig loadHardmode(FileConfiguration cfg) {

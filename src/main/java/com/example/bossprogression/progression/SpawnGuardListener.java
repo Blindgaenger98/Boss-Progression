@@ -10,6 +10,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.util.Optional;
 
@@ -77,5 +78,10 @@ public final class SpawnGuardListener implements Listener {
 
         event.setCancelled(true);
         plugin.penaltyApplier().applyAround(entity.getLocation(), tier.get());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        plugin.penaltyApplier().onPlayerQuit(event.getPlayer().getUniqueId());
     }
 }

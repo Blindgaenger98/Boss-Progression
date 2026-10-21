@@ -53,14 +53,14 @@ public final class BossAdminCommand implements TabExecutor {
 
     private void handleSetTier(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage("Usage: /bossadmin settier <tier>");
+            plugin.messages().send(sender, "usage.bossadmin-settier");
             return;
         }
         int tier;
         try {
             tier = Integer.parseInt(args[1]);
         } catch (NumberFormatException ex) {
-            sender.sendMessage("Invalid tier number: " + args[1]);
+            plugin.messages().send(sender, "usage.bossadmin-invalid-tier", Map.of("input", args[1]));
             return;
         }
         if (plugin.progressionManager().setTier(tier)) {
@@ -68,14 +68,14 @@ public final class BossAdminCommand implements TabExecutor {
                     Map.of("tier", String.valueOf(tier)));
             plugin.getLogger().info("Admin " + sender.getName() + " set boss tier to " + tier);
         } else {
-            sender.sendMessage("§cTier must be between 0 and "
-                    + plugin.configManager().getBossTiers().size() + ".");
+            plugin.messages().send(sender, "usage.bossadmin-tier-range",
+                    Map.of("max", String.valueOf(plugin.configManager().getBossTiers().size())));
         }
     }
 
     private void handleRevive(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage("Usage: /bossadmin revive <player>");
+            plugin.messages().send(sender, "usage.bossadmin-revive");
             return;
         }
         Player target = Bukkit.getPlayerExact(args[1]);
@@ -133,10 +133,10 @@ public final class BossAdminCommand implements TabExecutor {
     }
 
     private void sendUsage(CommandSender sender) {
-        sender.sendMessage("§e/bossadmin settier <tier> §7- set the current boss tier");
-        sender.sendMessage("§e/bossadmin revive <player> §7- force-revive a dead player (no item needed)");
-        sender.sendMessage("§e/bossadmin setaltar §7- set the altar at your current location");
-        sender.sendMessage("§e/bossadmin reload §7- reload config.yml and messages.yml");
+        plugin.messages().send(sender, "usage.bossadmin-line-settier");
+        plugin.messages().send(sender, "usage.bossadmin-line-revive");
+        plugin.messages().send(sender, "usage.bossadmin-line-setaltar");
+        plugin.messages().send(sender, "usage.bossadmin-line-reload");
     }
 
     @Override

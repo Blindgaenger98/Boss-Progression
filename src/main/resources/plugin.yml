@@ -1,7 +1,7 @@
 name: BossProgression
 version: '${project.version}'
 main: com.example.bossprogression.BossProgressionPlugin
-api-version: '1.21'
+api-version: '1.26.3'
 description: Sequential boss progression with conditional permadeath and revive system.
 author: BossProgression Team
 softdepend: [MythicMobs]

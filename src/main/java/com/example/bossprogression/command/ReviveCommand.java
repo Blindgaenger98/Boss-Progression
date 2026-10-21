@@ -37,7 +37,7 @@ public final class ReviveCommand implements TabExecutor {
             return true;
         }
         if (args.length < 1) {
-            player.sendMessage("Usage: /revive <player>");
+            plugin.messages().send(player, "usage.revive");
             return true;
         }
         Player target = Bukkit.getPlayerExact(args[0]);

@@ -53,7 +53,7 @@ public final class RaidEventListener implements Listener {
         if (next != null) {
             plugin.penaltyApplier().applyTo(player, next);
             player.sendActionBar(LegacyComponentSerializer.legacySection()
-                    .deserialize("&c" + next.displayName().replace('&', '§') + " is not ready yet!"));
+                    .deserialize(plugin.messages().plain("raid.penalized")));
         }
         plugin.messages().send(player, "raid.trigger-blocked");
         plugin.getLogger().info("Raid trigger by " + player.getName() + " blocked (not the current progression step).");

@@ -103,7 +103,7 @@ flowchart TD
 - [x] **T12:** `/boss status`-Befehl (aktuelles Tier, nächster Boss, benötigtes Revive-Item, "all completed"-Zustand, Permission `bossplugin.status`)
 - [x] **T13:** `/bossadmin`-Befehl: `settier <0..N>`, `revive <player>` (force, ohne Item), `setaltar` (am Spielerstandort), `reload` (Config + Messages + markDirty) — Permission `bossplugin.admin`, Tab-Completion
 - [x] **T14:** `hook/`-SPI: `BossHook`-Interface (Defaults, `onBossSpawn`-Veto) + `BossHookManager` (Discovery via `isPluginEnabled`, Throwable-Isolation) + `MythicMobsHook`-Platzhalter (inaktiv bis Phase 2)
-- [x] **T15:** MockBukkit-Tests (alle erben von `PluginTestBase` mit `MockBukkit.load`/`unmock`): DataStoreTest, PermadeathListenerTest, BossDeathListenerTest, ProgressionManagerTest, SpawnGuardListenerTest (chunk-basierte Spawns `@Disabled` — MockBukkit mockt `getChunkAt` nicht), ReviveItemValidatorTest
+- [x] **T15:** MockBukkit-Tests (alle erben von `PluginTestBase` mit `MockBukkit.load`/`unmock`): DataStoreTest, PermadeathListenerTest, BossDeathListenerTest, ProgressionManagerTest, SpawnGuardListenerTest (per `EntitySpawnEvent` + Teleport, kein `getChunkAt` nötig), ReviveItemValidatorTest
 - [x] **T16:** `messages.yml` für alle Spieler-Meldungen, Logging via `plugin.getLogger()` (Plain-Strings), Null-Safety-Pass, `mvn clean verify -B -ntp` baut sauber (`target/BossProgression-1.0.0.jar`)
 
 ### Phase 2 (später, eigener Task)

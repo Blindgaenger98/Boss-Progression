@@ -13,7 +13,7 @@ BossProgression: Paper plugin (Minecraft 1.26.3 / Paper `26.3.build.200-stable`)
 
 ## Critical Paper 26.x API gotchas (learned by migrating from 1.21)
 
-- `ItemMeta.getDisplayName()` / `hasDisplayName()` are **Adventure `Component`-based** — never expect `String`. Serialize with `net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer`. `ChatColor.translateAlternateColorCodes` on ItemMeta results is the wrong path for metadata.
+- `ItemMeta#displayName()` (Component getter) / `ItemMeta#displayName(Component)` (setter) are the **Adventure `Component`-based** accessors — use them and serialize with `net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer`. `getDisplayName()` / `setDisplayName(String)` are legacy `String` variants (as is `hasDisplayName()`); `ChatColor.translateAlternateColorCodes` on ItemMeta results is the wrong path for metadata.
 - `DamageSource.build()` **requires a `DamageType` argument**; use `org.bukkit.damage.DamageTypeKeys.VOID` / `GENERIC_KILL` constants.
 - `EntityDeathEvent.getDrops()` is **read-only** — compute drops from `event.getEntity().getEquipment()`.
 - `NamespacedKey` key part must not contain `:` — PDC keys in `config.yml` are bare (e.g. `revive`); the plugin namespace `bossprogression:` is prepended by the `NamespacedKey` constructor.
@@ -23,7 +23,7 @@ BossProgression: Paper plugin (Minecraft 1.26.3 / Paper `26.3.build.200-stable`)
 ## Testing (MockBukkit 4.x, `org.mockbukkit.mockbukkit:mockbukkit-v26.3`)
 
 - All tests extend [`PluginTestBase`](src/test/java/com/example/bossprogression/PluginTestBase.java): `MockBukkit.load(BossProgressionPlugin.class)` per test + `MockBukkit.unmock()` in teardown. The plugin loads real `config.yml`/`messages.yml` from `src/main/resources` via `saveDefaultConfig()`.
-- `WorldMock` **does not mock `getChunkAt`** — spawn/location-based tests that need chunks must be `@Disabled` with a reason (see [`SpawnGuardListenerTest`](src/test/java/com/example/bossprogression/progression/SpawnGuardListenerTest.java)).
+- No tests are `@Disabled` for chunk access: [`SpawnGuardListenerTest`](src/test/java/com/example/bossprogression/progression/SpawnGuardListenerTest.java) drives the spawn guard via `EntitySpawnEvent` + teleport, so `WorldMock#getChunkAt` is never required.
 - Events are fired via `server.getPluginManager().callEvent(event)` — listeners are auto-registered when the plugin loads.
 
 ## Architecture invariants

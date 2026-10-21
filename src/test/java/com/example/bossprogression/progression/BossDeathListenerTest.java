@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * MockBukkit 3.93.2 ships no WitherMock/EnderDragonMock, so the boss-death logic
+ * MockBukkit 4.x ships no WitherMock/EnderDragonMock, so the boss-death logic
  * is exercised with the WARDEN (config tier 1), the only mockable boss entity.
  */
 class BossDeathListenerTest extends PluginTestBase {

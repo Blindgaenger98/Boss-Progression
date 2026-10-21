@@ -45,7 +45,6 @@ permadeath:
   revived: "&aYou have been revived! Brief invulnerability and regeneration granted."
   revived-by: "&a{player} has been revived at the altar."
   no-item: "&cYou don't have the required revive item for the current tier."
-  wrong-item: "&cThat item does not match the current boss tier."
   no-dead-players: "&cThere are no fallen players to revive."
   self-already-alive: "&c{player} is not dead."
   cannot-revive-self: "&cYou cannot revive yourself."
@@ -56,4 +55,14 @@ altar:
   location: "&eRevive altar: &f{world} &7({x}, {y}, {z})"
   gui-title: "Revive Altar"
   dead-player-entry: "&c{player} &7- fallen"
-  no-altar-block: "&cThis block is not the registered altar."
+
+usage:
+  revive: "Usage: /revive <player>"
+  bossadmin-settier: "Usage: /bossadmin settier <tier>"
+  bossadmin-revive: "Usage: /bossadmin revive <player>"
+  bossadmin-invalid-tier: "Invalid tier number: {input}"
+  bossadmin-tier-range: "&cTier must be between 0 and {max}."
+  bossadmin-line-settier: "&e/bossadmin settier <tier> &7- set the current boss tier"
+  bossadmin-line-revive: "&e/bossadmin revive <player> &7- force-revive a dead player (no item needed)"
+  bossadmin-line-setaltar: "&e/bossadmin setaltar &7- set the altar at your current location"
+  bossadmin-line-reload: "&e/bossadmin reload &7- reload config.yml and messages.yml"

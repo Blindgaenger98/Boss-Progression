@@ -65,7 +65,6 @@ public final class PenaltyApplier {
         }
         lastPenaltyTicks.put(player.getUniqueId(), currentTick());
 
-        String bossName = offendingTier.displayName().replace('&', '\u00a7');
         player.addPotionEffect(new PotionEffect(
                 PotionEffectType.WITHER, penalty.getEffectDurationTicks(),
                 Math.max(0, penalty.getWitherAmplifier()), false, false, true));
@@ -80,7 +79,7 @@ public final class PenaltyApplier {
 
         plugin.messages().send(player, "premature-attempt.spawn-cancelled");
         player.sendActionBar(LegacyComponentSerializer.legacySection()
-                .deserialize("&c" + bossName + " is not ready yet!"));
+                .deserialize(plugin.messages().plain("premature-attempt.penalty-applied")));
     }
 
     /**

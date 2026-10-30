@@ -1,12 +1,14 @@
 package com.example.bossprogression.altar;
 
 import com.example.bossprogression.BossProgressionPlugin;
+import com.example.bossprogression.config.AltarConfig;
 import com.example.bossprogression.revive.ReviveItemValidator;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import com.example.bossprogression.revive.ReviveManager;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Particle;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -54,7 +56,7 @@ public final class AltarManager {
     }
 
     /** @return the configured altar block material. */
-    public org.bukkit.Material getAltarBlock() {
+    public Material getAltarBlock() {
         return plugin.configManager().getAltarConfig().getAltarBlock();
     }
 
@@ -96,13 +98,23 @@ public final class AltarManager {
             }
             deadList.add(uuid);
         }
+        int hidden = dead.size() - deadList.size();
+        if (hidden > 0) {
+            // The 27-slot GUI cannot show every dead player; keep the rest
+            // visible via the log (no gameplay change, no UI mode change).
+            plugin.getLogger().warning("Altar GUI shows only 27 of " + dead.size()
+                    + " dead players - " + hidden + " player(s) are not displayed");
+        }
 
         // Per-player holder: the slot -> dead player mapping lives on the GUI
         // inventory itself, so GUIs of different players can never corrupt
         // each other's mappings (review Top-10 #6).
         AltarGuiHolder holder = new AltarGuiHolder(player.getUniqueId(), deadList);
+        // Paper 26.x: the String-title overload of createInventory is deprecated;
+        // use the Adventure Component title instead (project convention, Fix 6).
         Inventory gui = Bukkit.createInventory(holder, 27,
-                plugin.messages().plain("altar.gui-title"));
+                LegacyComponentSerializer.legacySection()
+                        .deserialize(plugin.messages().plain("altar.gui-title")));
 
         int slot = 0;
         for (UUID uuid : deadList) {
@@ -121,19 +133,69 @@ public final class AltarManager {
             slot++;
         }
 
+        // Visual + audio feedback at the altar (wired up from AltarConfig,
+        // which previously had dead-code getters).
+        Location altar = plugin.dataStore().getAltarLocation();
+        if (altar != null && altar.getWorld() != null) {
+            playAltarFeedback(altar);
+        }
+
         player.closeInventory();
         player.openInventory(gui);
 
+        // Re-open: cancel the previous auto-close task so it cannot keep
+        // running (or leak) for the same player.
+        cancelOpenTask(player.getUniqueId());
+
         // Close the GUI automatically if the player moves more than a few blocks away.
         BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            if (player.getLocation().distanceSquared(
-                    plugin.dataStore().getAltarLocation()) > 16 * 16) {
+            Location currentAltar = plugin.dataStore().getAltarLocation();
+            if (currentAltar == null) {
+                // Altar was removed while the GUI was open: stop the watch, no NPE.
+                cancelOpenTask(player.getUniqueId());
+                return;
+            }
+            if (player.getLocation().distanceSquared(currentAltar) > 16 * 16) {
                 player.closeInventory();
                 cancelOpenTask(player.getUniqueId());
             }
         }, 10L, 10L);
         openTasks.put(player.getUniqueId(), task);
         return true;
+    }
+
+    /**
+     * Plays the configured particle and sound at the altar location.
+     * Configuration values that do not resolve are skipped silently.
+     */
+    private void playAltarFeedback(Location altar) {
+        AltarConfig config = plugin.configManager().getAltarConfig();
+        try {
+            String particle = config.getParticle();
+            if (particle != null && !particle.isBlank()) {
+                Particle p = Particle.valueOf(particle.trim().toUpperCase());
+                altar.getWorld().spawnParticle(p, altar, 40, 0.5, 0.5, 0.5, 0.1);
+            }
+        } catch (IllegalArgumentException ignored) {
+            plugin.getLogger().warning("Unknown altar particle in config.yml: " + config.getParticle());
+        }
+        String sound = config.getSound();
+        if (sound != null && !sound.isBlank()) {
+            // Paper 26.x: Sound.valueOf is deprecated; the String overload of
+            // playSound resolves the sound key itself.
+            altar.getWorld().playSound(altar, sound.trim(), 1.0f, 1.0f);
+        }
+    }
+
+    /**
+     * Cancels the auto-close task for the given player (GUI closed manually,
+     * player quit, or plugin shutdown). Safe to call when no task is running.
+     */
+    public void cancelOpenTask(UUID uuid) {
+        BukkitTask task = openTasks.remove(uuid);
+        if (task != null) {
+            task.cancel();
+        }
     }
 
     /**
@@ -183,13 +245,6 @@ public final class AltarManager {
         // Refresh the GUI (dead player list changed).
         cancelOpenTask(player.getUniqueId());
         openGui(player);
-    }
-
-    private void cancelOpenTask(UUID uuid) {
-        BukkitTask task = openTasks.remove(uuid);
-        if (task != null) {
-            task.cancel();
-        }
     }
 
     public void close() {

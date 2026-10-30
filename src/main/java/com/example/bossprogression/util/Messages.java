@@ -11,14 +11,18 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Centralized access to {@code messages.yml}. All player-facing strings live there.
  */
 public final class Messages {
 
+    private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\{\\w+\\}");
+
     private final BossProgressionPlugin plugin;
-    private YamlConfiguration yaml;
+    private volatile YamlConfiguration yaml;
 
     public Messages(BossProgressionPlugin plugin) {
         this.plugin = plugin;
@@ -41,10 +45,7 @@ public final class Messages {
 
     /** Raw message with placeholders replaced and color codes translated. */
     public String raw(String key, Map<String, String> placeholders) {
-        String value = yaml.getString(key, "&cMissing message: " + key);
-        for (Map.Entry<String, String> e : placeholders.entrySet()) {
-            value = value.replace("{" + e.getKey() + "}", e.getValue());
-        }
+        String value = substitute(yaml.getString(key, "&cMissing message: " + key), placeholders);
         return prefix() + ChatColor.translateAlternateColorCodes('&', value);
     }
 
@@ -56,11 +57,31 @@ public final class Messages {
 
     /** Raw message without prefix, placeholders replaced, color codes translated. */
     public String plain(String key, Map<String, String> placeholders) {
-        String value = yaml.getString(key, "&cMissing message: " + key);
-        for (Map.Entry<String, String> e : placeholders.entrySet()) {
-            value = value.replace("{" + e.getKey() + "}", e.getValue());
-        }
+        String value = substitute(yaml.getString(key, "&cMissing message: " + key), placeholders);
         return ChatColor.translateAlternateColorCodes('&', value);
+    }
+
+    /**
+     * Single-pass placeholder substitution: every {@code {key}} in the original
+     * string is replaced exactly once via {@link Matcher#appendReplacement}.
+     * Placeholder values are never re-scanned, so values containing
+     * {@code {other}}-style text are inserted verbatim (no recursion, no
+     * order-dependence on the map). Unknown keys are left unchanged in the
+     * output.
+     */
+    private static String substitute(String value, Map<String, String> placeholders) {
+        if (placeholders == null || placeholders.isEmpty()) {
+            return value;
+        }
+        Matcher m = PLACEHOLDER_PATTERN.matcher(value);
+        StringBuilder sb = new StringBuilder();
+        while (m.find()) {
+            String key = m.group().substring(1, m.group().length() - 1);
+            String replacement = placeholders.getOrDefault(key, m.group());
+            m.appendReplacement(sb, Matcher.quoteReplacement(replacement));
+        }
+        m.appendTail(sb);
+        return sb.toString();
     }
 
     public String prefix() {

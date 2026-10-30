@@ -45,7 +45,7 @@ public final class BossStatusCommand implements TabExecutor {
                     java.util.Map.of("boss", next.displayName(), "tier", String.valueOf(next.tierNumber())));
         }
 
-        ReviveItemValidator validator = new ReviveItemValidator(plugin);
+        ReviveItemValidator validator = plugin.reviveManager().validator();
         BossTier unlocked = validator.latestUnlockedTier();
         if (unlocked != null) {
             plugin.messages().send(sender, "boss-status.revive-item",

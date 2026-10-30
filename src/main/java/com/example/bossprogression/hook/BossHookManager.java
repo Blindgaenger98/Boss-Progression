@@ -58,22 +58,37 @@ public final class BossHookManager {
         hooks.clear();
     }
 
+    /**
+     * Registers an additional hook at runtime (used by tests to inject fakes;
+     * production hooks are discovered in {@link #discoverAndEnable()}).
+     */
+    public void registerHook(BossHook hook) {
+        hooks.add(hook);
+    }
+
     /** @return the first hook that claims the given entity type, if any. */
     public Optional<BossHook> hookFor(EntityType type) {
-        return hooks.stream().filter(h -> h.isBossType(type)).findFirst();
+        for (BossHook hook : hooks) {
+            try {
+                if (hook.isBossType(type)) {
+                    return Optional.of(hook);
+                }
+            } catch (Throwable t) {
+                plugin.getLogger().warning("Hook " + hook.id() + " threw on isBossType: " + t.getMessage());
+            }
+        }
+        return Optional.empty();
     }
 
     /** @return {@code true} if any hook vetoes the spawn of the given boss entity. */
     public boolean anyVetoSpawn(Entity entity, BossTier tier) {
         for (BossHook hook : hooks) {
-            if (hook.isBossType(entity.getType())) {
-                try {
-                    if (hook.onBossSpawn(entity, tier)) {
-                        return true;
-                    }
-                } catch (Throwable t) {
-                    plugin.getLogger().warning("Hook " + hook.id() + " threw on boss spawn: " + t.getMessage());
+            try {
+                if (hook.isBossType(entity.getType()) && hook.onBossSpawn(entity, tier)) {
+                    return true;
                 }
+            } catch (Throwable t) {
+                plugin.getLogger().warning("Hook " + hook.id() + " threw on boss spawn: " + t.getMessage());
             }
         }
         return false;
@@ -82,12 +97,12 @@ public final class BossHookManager {
     /** Notifies all hooks that a boss entity died. */
     public void onBossDeath(Entity entity, BossTier tier) {
         for (BossHook hook : hooks) {
-            if (hook.isBossType(entity.getType())) {
-                try {
+            try {
+                if (hook.isBossType(entity.getType())) {
                     hook.onBossDeath(entity, tier);
-                } catch (Throwable t) {
-                    plugin.getLogger().warning("Hook " + hook.id() + " threw on boss death: " + t.getMessage());
                 }
+            } catch (Throwable t) {
+                plugin.getLogger().warning("Hook " + hook.id() + " threw on boss death: " + t.getMessage());
             }
         }
     }

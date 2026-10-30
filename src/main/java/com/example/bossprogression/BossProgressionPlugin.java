@@ -18,6 +18,7 @@ import com.example.bossprogression.progression.ProgressionManager;
 import com.example.bossprogression.progression.RaidEventListener;
 import com.example.bossprogression.progression.SpawnGuardListener;
 import com.example.bossprogression.progression.StructureEventListener;
+import com.example.bossprogression.revive.ReviveManager;
 import com.example.bossprogression.util.Messages;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -38,6 +39,7 @@ public class BossProgressionPlugin extends JavaPlugin {
     private HardmodeManager hardmodeManager;
     private StructureEventListener structureEventListener;
     private AltarManager altarManager;
+    private ReviveManager reviveManager;
     private BossHookManager hookManager;
 
     @Override
@@ -77,6 +79,10 @@ public class BossProgressionPlugin extends JavaPlugin {
         this.altarManager = new AltarManager(this);
         pm.registerEvents(new AltarListener(this), this);
 
+        // Central revive manager (depends on dataStore/configManager, both ready
+        // at this point). Commands and AltarManager resolve it via the accessor.
+        this.reviveManager = new ReviveManager(this);
+
         // Commands.
         registerCommand("boss", new BossStatusCommand(this));
         registerCommand("altar", new AltarCommand(this));
@@ -114,10 +120,13 @@ public class BossProgressionPlugin extends JavaPlugin {
 
     private void registerCommand(String name, org.bukkit.command.TabExecutor executor) {
         PluginCommand command = getCommand(name);
-        if (command != null) {
-            command.setExecutor(executor);
-            command.setTabCompleter(executor);
+        if (command == null) {
+            // A missing plugin.yml entry would otherwise fail silently.
+            getLogger().severe("Command '" + name + "' is not declared in plugin.yml; registration skipped");
+            return;
         }
+        command.setExecutor(executor);
+        command.setTabCompleter(executor);
     }
 
     // ---- Accessors ----
@@ -161,6 +170,10 @@ public class BossProgressionPlugin extends JavaPlugin {
 
     public AltarManager altarManager() {
         return altarManager;
+    }
+
+    public ReviveManager reviveManager() {
+        return reviveManager;
     }
 
     public BossHookManager hookManager() {

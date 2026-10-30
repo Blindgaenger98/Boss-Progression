@@ -13,6 +13,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -120,5 +121,24 @@ class BossAdminCommandTest extends PluginTestBase {
 
         assertEquals(plugin.messages().raw("admin.reload-failed"), result.getSender().nextMessage());
         result.getSender().assertNoMoreSaid();
+    }
+
+    @Test
+    void forceReviveRunsThroughCentralReviveManagerAccessor() {
+        // F3: /bossadmin revive must use the central plugin.reviveManager()
+        // instance (created once in onEnable) instead of its own ad-hoc one.
+        assertNotNull(plugin.reviveManager(),
+                "central ReviveManager must be available after onEnable");
+        PlayerMock admin = admin();
+        PlayerMock target = server.addPlayer("CentralTarget");
+        plugin.dataStore().markDead(target.getUniqueId());
+
+        CommandResult result = server.execute("bossadmin", admin, "revive", "CentralTarget");
+
+        assertFalse(plugin.dataStore().isDead(target.getUniqueId()),
+                "force revive via the central ReviveManager must mark the target alive");
+        assertEquals(plugin.messages().raw("permadeath.revived-by",
+                Map.of("player", "CentralTarget")), admin.nextMessage());
+        admin.assertNoMoreSaid();
     }
 }

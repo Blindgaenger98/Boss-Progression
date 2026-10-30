@@ -19,11 +19,9 @@ import java.util.List;
 public final class ReviveCommand implements TabExecutor {
 
     private final BossProgressionPlugin plugin;
-    private final ReviveManager reviveManager;
 
     public ReviveCommand(BossProgressionPlugin plugin) {
         this.plugin = plugin;
-        this.reviveManager = new ReviveManager(plugin);
     }
 
     @Override
@@ -56,6 +54,7 @@ public final class ReviveCommand implements TabExecutor {
             return true;
         }
 
+        ReviveManager reviveManager = plugin.reviveManager();
         ReviveManager.ReviveResult result = reviveManager.revive(
                 target, player, reviveManager.resolveDestination(target, player), false);
         switch (result) {

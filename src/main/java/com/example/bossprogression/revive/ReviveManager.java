@@ -48,6 +48,11 @@ public final class ReviveManager {
         this.validator = new ReviveItemValidator(plugin);
     }
 
+    /** @return the item validator owned by this manager (single source of truth). */
+    public ReviveItemValidator validator() {
+        return validator;
+    }
+
     /**
      * Attempts to revive the given player, consuming one revive item from the
      * actor's inventory (unless forced).

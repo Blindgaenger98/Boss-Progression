@@ -1,13 +1,22 @@
 package com.example.bossprogression;
 
+import org.bukkit.command.TabExecutor;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -55,6 +64,58 @@ class PluginLifecycleTest extends PluginTestBase {
         YamlConfiguration reloaded = YamlConfiguration.loadConfiguration(dataFile);
         assertEquals(3, reloaded.getInt("current_boss_tier", -1),
                 "final save in shutdown must persist the current tier");
+    }
+
+    @Test
+    void commandRegistrationFailureIsLoggedWhenCommandMissingFromPluginYml() throws Exception {
+        // F2: a missing plugin.yml entry used to fail registration silently.
+        // registerCommand is private and all four declared commands exist in
+        // plugin.yml, so the test invokes the private method reflectively with a
+        // name that is not declared - the pragmatic approach for covering the
+        // failure path (documented deviation).
+        List<LogRecord> records = new ArrayList<>();
+        Handler capture = new Handler() {
+            @Override
+            public void publish(LogRecord record) {
+                records.add(record);
+            }
+
+            @Override
+            public void flush() {
+                // no-op
+            }
+
+            @Override
+            public void close() {
+                // no-op
+            }
+        };
+        Logger logger = plugin.getLogger();
+        logger.addHandler(capture);
+        try {
+            Method registerCommand = BossProgressionPlugin.class
+                    .getDeclaredMethod("registerCommand", String.class, TabExecutor.class);
+            registerCommand.setAccessible(true);
+            registerCommand.invoke(plugin, "definitely-missing-command", null);
+        } finally {
+            logger.removeHandler(capture);
+        }
+
+        assertTrue(records.stream().anyMatch(r ->
+                        r.getLevel().intValue() >= Level.SEVERE.intValue()
+                                && String.valueOf(r.getMessage()).contains("definitely-missing-command")),
+                "a severe log entry naming the missing command must be emitted");
+    }
+
+    @Test
+    void reviveManagerIsAvailableThroughCentralAccessorAfterOnEnable() {
+        // F3: the ReviveManager is created once in onEnable and exposed through
+        // the bare-method accessor instead of being re-instantiated per command.
+        assertNotNull(plugin.reviveManager(), "the central ReviveManager must be instantiated in onEnable");
+        assertSame(plugin.reviveManager(), plugin.reviveManager(),
+                "the accessor must return the stable instance created in onEnable");
+        assertNotNull(plugin.reviveManager().validator(),
+                "the central manager must expose its revive item validator");
     }
 
     private List<BukkitTask> pendingPluginTasks() {

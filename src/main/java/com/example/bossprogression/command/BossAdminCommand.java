@@ -89,7 +89,7 @@ public final class BossAdminCommand implements TabExecutor {
         }
         Player actor = (Player) sender;
 
-        ReviveManager reviveManager = new ReviveManager(plugin);
+        ReviveManager reviveManager = plugin.reviveManager();
         Location destination = reviveManager.resolveDestination(target, actor);
         ReviveManager.ReviveResult result =
                 reviveManager.revive(target, actor, destination, true);

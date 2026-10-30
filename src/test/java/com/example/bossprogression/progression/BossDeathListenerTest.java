@@ -14,7 +14,10 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -94,5 +97,32 @@ class BossDeathListenerTest extends PluginTestBase {
 
         assertEquals(0, plugin.dataStore().getCurrentBossTier());
         assertTrue(world.getEntitiesByClass(Item.class).isEmpty());
+    }
+
+    @Test
+    void reviveItemWithoutDisplayNameDoesNotThrowAndDropsItem() {
+        // Override the warden's revive item display name to empty, simulating
+        // a config without a display-name and exercising the null/blank fallback.
+        plugin.getConfig().set("boss-tiers.warden.revive-item.display-name", "");
+        plugin.saveConfig();
+        assertTrue(plugin.configManager().load());
+
+        PlayerMock player = server.addPlayer("Watcher");
+        WardenMock warden = new WardenMock(server, UUID.randomUUID());
+
+        List<Item> dropped = kill(warden);
+
+        assertEquals(1, dropped.size(), "Revive item must still be dropped without a display name");
+        assertEquals(1, plugin.dataStore().getCurrentBossTier(), "Tier must advance");
+        assertEquals(Material.SCULK_CATALYST, dropped.get(0).getItemStack().getType());
+
+        // First message: global broadcast from advance(); second: drop message.
+        player.nextMessage(); // consume global broadcast
+        String dropMsg = player.nextMessage();
+        String expected = plugin.messages().raw("boss-killed.drop-message",
+                Map.of("item", "SCULK_CATALYST"));
+        LegacyComponentSerializer legacy = LegacyComponentSerializer.legacySection();
+        assertEquals(legacy.serialize(legacy.deserialize(expected)), dropMsg,
+                "Drop message must fall back to the material name");
     }
 }

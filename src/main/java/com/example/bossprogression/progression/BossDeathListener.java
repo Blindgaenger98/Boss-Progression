@@ -79,6 +79,6 @@ public final class BossDeathListener implements Listener {
 
     /** Human-readable name of the revive item, used in chat messages. */
     private String itemDisplayName(BossTier tier) {
-        return tier.reviveItem().getDisplayName().replace('&', '\u00a7');
+        return tier.reviveItem().displayNameOrMaterialName().replace('&', '\u00a7');
     }
 }

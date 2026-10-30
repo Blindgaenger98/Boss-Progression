@@ -96,6 +96,6 @@ public final class RaidEventListener implements Listener {
 
     /** Human-readable name of the revive item, used in chat messages. */
     private String itemDisplayName(BossTier tier) {
-        return tier.reviveItem().getDisplayName().replace('&', '§');
+        return tier.reviveItem().displayNameOrMaterialName().replace('&', '§');
     }
 }

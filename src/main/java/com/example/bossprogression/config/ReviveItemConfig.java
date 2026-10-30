@@ -52,6 +52,23 @@ public final class ReviveItemConfig {
     }
 
     /**
+     * Null-safe display name for player-facing chat messages.
+     *
+     * <p>The display name is optional: {@link #createItem(Plugin, int)} tolerates a
+     * missing name and creates the bare material. Consumers that must not throw on
+     * {@code null} (e.g. the revive-item drop announcements) must use this accessor
+     * instead of {@link #getDisplayName()}.
+     *
+     * @return the configured display name, or the bare material name when absent/blank
+     */
+    public String displayNameOrMaterialName() {
+        if (displayName == null || displayName.isBlank()) {
+            return material.name();
+        }
+        return displayName;
+    }
+
+    /**
      * Creates the actual item instance, stamped with PDC tag, CMD and display name.
      *
      * @param plugin owning plugin used to construct the PDC NamespacedKey

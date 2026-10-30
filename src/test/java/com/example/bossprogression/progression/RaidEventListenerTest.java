@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.example.bossprogression.PluginTestBase;
 import com.example.bossprogression.config.TierType;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
@@ -18,6 +19,7 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.Raid;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockbukkit.mockbukkit.entity.PlayerMock;
 import org.mockbukkit.mockbukkit.event.RaidMock;
 
 import java.util.List;
@@ -163,5 +165,42 @@ class RaidEventListenerTest extends PluginTestBase {
 
         assertEquals(0, plugin.dataStore().getCurrentBossTier());
         assertFalse(winner.getInventory().contains(Material.EMERALD));
+    }
+
+    @Test
+    void raidFinishWithReviveItemWithoutDisplayNameDoesNotThrow() {
+        setupRaidTier();
+        // Override the display name to empty, exercising the null/blank fallback.
+        plugin.getConfig().set("boss-tiers.town-raid.revive-item.display-name", "");
+        plugin.saveConfig();
+        assertTrue(plugin.configManager().load());
+
+        assertTrue(plugin.progressionManager().setTier(RAID_TIER - 1));
+        PlayerMock winner = server.addPlayer("RaidHero");
+
+        Raid raid = raidAtCenter();
+        raid.setTotalWaves(6);
+        server.getPluginManager().callEvent(new RaidFinishEvent(raid, world, List.of(winner)));
+
+        assertEquals(RAID_TIER, plugin.dataStore().getCurrentBossTier());
+
+        // Verify the item is in the inventory with PDC tag.
+        NamespacedKey pdcKey = new NamespacedKey(plugin, "revive");
+        boolean found = false;
+        for (ItemStack item : winner.getInventory().getContents()) {
+            if (item == null || item.getType() != Material.EMERALD) continue;
+            String value = item.getItemMeta().getPersistentDataContainer().get(pdcKey, PersistentDataType.STRING);
+            if ("tier4".equals(value)) found = true;
+        }
+        assertTrue(found, "Revive item must be delivered without a display name");
+
+        // First message: global broadcast from advance(); second: winner-item message.
+        winner.nextMessage(); // consume global broadcast
+        String winnerMsg = winner.nextMessage();
+        String expected = plugin.messages().raw("raid-cleared.winner-item",
+                Map.of("item", "EMERALD"));
+        LegacyComponentSerializer legacy = LegacyComponentSerializer.legacySection();
+        assertEquals(legacy.serialize(legacy.deserialize(expected)), winnerMsg,
+                "Winner message must fall back to the material name");
     }
 }

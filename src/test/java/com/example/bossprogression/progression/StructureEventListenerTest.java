@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.example.bossprogression.PluginTestBase;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -19,6 +20,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffectType;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 
@@ -163,5 +165,98 @@ class StructureEventListenerTest extends PluginTestBase {
             }
         }
         assertTrue(itemDropped, "a TRIAL_KEY revive item with PDC value tier5 should be dropped on the ground");
+    }
+
+    /**
+     * Configures the structure tier with the given spawner-clear threshold plus a trailing
+     * VANILLA tier, so that a spurious second advance would skip the trailing tier and be
+     * observable via the DataStore tier.
+     */
+    private void setupStructureAndTrailingTier(int requiredSpawnerClears) {
+        plugin.getConfig().set("boss-tiers.trial-chamber", Map.of(
+                "tier", STRUCTURE_TIER,
+                "type", "STRUCTURE_CLEAR",
+                "structure-kind", "TRIAL_CHAMBER",
+                "required-spawner-clears", requiredSpawnerClears,
+                "revive-item", Map.of(
+                        "material", "TRIAL_KEY",
+                        "pdc-key", "revive",
+                        "pdc-value", "tier4")));
+        plugin.getConfig().set("boss-tiers.trail-warden", Map.of(
+                "tier", STRUCTURE_TIER + 1,
+                "entity-type", "WARDEN",
+                "display-name", "&5&lThe Warden",
+                "revive-item", Map.of(
+                        "material", "SCULK_CATALYST",
+                        "pdc-key", "revive",
+                        "pdc-value", "tier5")));
+        plugin.saveConfig();
+        assertTrue(plugin.configManager().load());
+    }
+
+    /** Reflective read of the listener's internal {@code lastStates} map (W5 cleanup test). */
+    @SuppressWarnings("unchecked")
+    private Map<Location, TrialSpawner.State> readLastStates() {
+        try {
+            Field field = StructureEventListener.class.getDeclaredField("lastStates");
+            field.setAccessible(true);
+            return (Map<Location, TrialSpawner.State>) field.get(plugin.structureEventListener());
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new AssertionError("cannot read StructureEventListener.lastStates", e);
+        }
+    }
+
+    @Test
+    void clearedSpawnerLocationIsRemovedFromLastStates() {
+        setupStructureTier();
+        assertTrue(plugin.progressionManager().setTier(STRUCTURE_TIER - 1));
+        Player player = server.addPlayer("Explorer");
+
+        Block spawner = spawnerAt(0, 0);
+        interactWithSpawner(player, spawner);
+        setSpawnerState(spawner, TrialSpawner.State.ACTIVE);
+        plugin.structureEventListener().pollSpawners(); // baseline poll
+
+        assertTrue(readLastStates().containsKey(spawner.getLocation()),
+                "tracked spawner must be present in lastStates after the baseline poll");
+
+        setSpawnerState(spawner, TrialSpawner.State.WAITING_FOR_REWARD_EJECTION);
+        plugin.structureEventListener().pollSpawners(); // clear detected -> spawner untracked
+
+        assertFalse(readLastStates().containsKey(spawner.getLocation()),
+                "lastStates must not retain locations of cleared (untracked) spawners");
+        assertEquals(STRUCTURE_TIER - 1, plugin.dataStore().getCurrentBossTier());
+    }
+
+    @Test
+    void twoClearsInOnePollWindowAdvanceExactlyOnce() {
+        setupStructureAndTrailingTier(1);
+        assertTrue(plugin.progressionManager().setTier(STRUCTURE_TIER - 1));
+        Player player = server.addPlayer("Explorer");
+
+        Block spawnerA = spawnerAt(0, 0);
+        Block spawnerB = spawnerAt(5, 0);
+        interactWithSpawner(player, spawnerA);
+        interactWithSpawner(player, spawnerB);
+        setSpawnerState(spawnerA, TrialSpawner.State.ACTIVE);
+        setSpawnerState(spawnerB, TrialSpawner.State.ACTIVE);
+        plugin.structureEventListener().pollSpawners(); // baseline: both active
+
+        // Both spawners clear within a single 40-tick poll window.
+        setSpawnerState(spawnerA, TrialSpawner.State.WAITING_FOR_REWARD_EJECTION);
+        setSpawnerState(spawnerB, TrialSpawner.State.EJECTING_REWARD);
+        plugin.structureEventListener().pollSpawners();
+
+        // Exactly one tier transition: the structure tier is defeated, the trailing
+        // tier must NOT be skipped by a second (stale) advance.
+        assertEquals(STRUCTURE_TIER, plugin.dataStore().getCurrentBossTier());
+
+        int droppedItems = 0;
+        for (Item drop : world.getEntitiesByClass(Item.class)) {
+            if (drop.getItemStack() != null) {
+                droppedItems++;
+            }
+        }
+        assertEquals(1, droppedItems, "only the structure tier's revive item may be dropped");
     }
 }

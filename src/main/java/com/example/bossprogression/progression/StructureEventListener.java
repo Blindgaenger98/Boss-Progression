@@ -114,12 +114,8 @@ public final class StructureEventListener implements Listener {
      * Package-private for direct invocation in tests.
      */
     void pollSpawners() {
-        BossTier next = plugin.progressionManager().getNextAllowedBoss();
-        boolean structureStep = next != null && next.type() == TierType.STRUCTURE_CLEAR
-                && next.structureKind() == StructureKind.TRIAL_CHAMBER;
-
         // Reset in-memory counts for tiers that are no longer the current progression step.
-        if (!structureStep) {
+        if (!isTrialChamberStep(plugin.progressionManager().getNextAllowedBoss())) {
             clearedByTier.clear();
         }
 
@@ -129,16 +125,30 @@ public final class StructureEventListener implements Listener {
             if (block.getBlockData() instanceof TrialSpawner data) {
                 TrialSpawner.State state = data.getTrialSpawnerState();
                 TrialSpawner.State prev = lastStates.put(loc, state);
-                if (structureStep && prev != null && prev == TrialSpawner.State.ACTIVE
+                if (prev != null && prev == TrialSpawner.State.ACTIVE
                         && CLEARED_STATES.contains(state)) {
-                    markCleared(next, loc);
-                    it.remove(); // done for this tier cycle; re-discovered on next spawn
+                    // Re-read the progression per transition: an earlier spawner clear in
+                    // this same poll cycle may already have advanced the tier, so caching
+                    // the next tier at poll start would cause a second (stale) advance when
+                    // required-spawner-clears is 1.
+                    BossTier next = plugin.progressionManager().getNextAllowedBoss();
+                    if (isTrialChamberStep(next)) {
+                        markCleared(next, loc);
+                        it.remove(); // done for this tier cycle; re-discovered on next spawn
+                        lastStates.remove(loc); // W5: drop the now-obsolete state entry
+                    }
                 }
             } else {
                 it.remove(); // no longer a trial spawner
                 lastStates.remove(loc);
             }
         }
+    }
+
+    /** True when the given tier is the trial-chamber structure progression step. */
+    private boolean isTrialChamberStep(BossTier tier) {
+        return tier != null && tier.type() == TierType.STRUCTURE_CLEAR
+                && tier.structureKind() == StructureKind.TRIAL_CHAMBER;
     }
 
     private void markCleared(BossTier tier, Location loc) {

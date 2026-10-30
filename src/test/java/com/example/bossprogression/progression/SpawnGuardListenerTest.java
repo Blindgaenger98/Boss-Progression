@@ -98,4 +98,21 @@ class SpawnGuardListenerTest extends PluginTestBase {
         assertTrue(event.isCancelled());
         assertTrue(player.hasPotionEffect(PotionEffectType.WITHER));
     }
+
+    @Test
+    void adminInteractionWithOutOfSequenceBossIsAllowed() {
+        plugin.progressionManager().setTier(1);
+
+        WardenMock warden = new WardenMock(server, java.util.UUID.randomUUID());
+        PlayerMock admin = server.addPlayer("BossAdmin");
+        admin.addAttachment(plugin, "bossplugin.admin", true);
+        admin.teleport(warden.getLocation());
+
+        PlayerInteractAtEntityEvent event =
+                new PlayerInteractAtEntityEvent(admin, warden, new Vector(0, 0, 0));
+        server.getPluginManager().callEvent(event);
+
+        assertFalse(event.isCancelled());
+        assertFalse(admin.hasPotionEffect(PotionEffectType.WITHER));
+    }
 }

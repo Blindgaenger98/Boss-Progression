@@ -75,6 +75,9 @@ public final class SpawnGuardListener implements Listener {
         if (tier.isEmpty() || plugin.progressionManager().isAllowed(tier.get().tierNumber())) {
             return;
         }
+        if (event.getPlayer().hasPermission("bossplugin.admin")) {
+            return; // admins are exempt
+        }
 
         event.setCancelled(true);
         plugin.penaltyApplier().applyAround(entity.getLocation(), tier.get());

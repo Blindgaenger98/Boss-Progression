@@ -68,7 +68,13 @@ public final class DataStore {
             }
         }
 
-        // Start periodic auto-save.
+        // Start periodic auto-save: cancel any task left over from a previous
+        // load (e.g. reload) first, otherwise every load would leak an extra
+        // parallel auto-save timer.
+        if (autoSaveTaskId != -1) {
+            Bukkit.getScheduler().cancelTask(autoSaveTaskId);
+            autoSaveTaskId = -1;
+        }
         int minutes = plugin.configManager().getAutoSaveMinutes();
         autoSaveTaskId = Bukkit.getScheduler().runTaskTimer(plugin, this::save,
                 minutes * 20L * 60L, minutes * 20L * 60L).getTaskId();

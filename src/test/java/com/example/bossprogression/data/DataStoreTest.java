@@ -3,13 +3,17 @@ package com.example.bossprogression.data;
 import com.example.bossprogression.PluginTestBase;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
 import org.bukkit.Location;
+import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
+import java.util.Collection;
 import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -88,5 +92,35 @@ class DataStoreTest extends PluginTestBase {
         DataStore fresh = new DataStore(plugin);
         fresh.load();
         assertNull(fresh.getAltarLocation());
+    }
+
+    @Test
+    void secondLoadCancelsPreviousAutoSaveTask() throws Exception {
+        // On enable, data.yml does not exist yet, so the initial load() takes
+        // the early-return path (no timer). Save first so both explicit loads
+        // below exercise the full path that re-registers the auto-save timer.
+        DataStore store = plugin.dataStore();
+        store.save();
+
+        store.load();
+        int firstId = readAutoSaveTaskId(store);
+        assertTrue(firstId >= 0, "load() must schedule an auto-save task");
+
+        store.load();
+        int secondId = readAutoSaveTaskId(store);
+        assertTrue(secondId >= 0, "second load() must schedule an auto-save task");
+        assertNotEquals(firstId, secondId, "second load must schedule a fresh task");
+
+        Collection<BukkitTask> pending = server.getScheduler().getPendingTasks();
+        long matchingFirst = pending.stream().filter(t -> t.getTaskId() == firstId).count();
+        long matchingSecond = pending.stream().filter(t -> t.getTaskId() == secondId).count();
+        assertEquals(0, matchingFirst, "previous auto-save task must be cancelled");
+        assertEquals(1, matchingSecond, "exactly one auto-save task must be pending");
+    }
+
+    private static int readAutoSaveTaskId(DataStore store) throws Exception {
+        Field field = DataStore.class.getDeclaredField("autoSaveTaskId");
+        field.setAccessible(true);
+        return field.getInt(store);
     }
 }

@@ -4,16 +4,35 @@ import org.mockbukkit.mockbukkit.entity.PlayerMock;
 import org.mockbukkit.mockbukkit.entity.WardenMock;
 import org.mockbukkit.mockbukkit.entity.ZombieMock;
 import com.example.bossprogression.PluginTestBase;
+import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SpawnGuardListenerTest extends PluginTestBase {
+
+    @BeforeEach
+    void installNoopPenaltyApplier() {
+        // WorldMock does not implement strikeLightningEffect and LivingEntityMock
+        // does not implement damage(double, DamageSource); stub both seams.
+        plugin.setPenaltyApplier(new PenaltyApplier(plugin) {
+            @Override
+            void strikeLightning(Player player) {
+                // no-op
+            }
+
+            @Override
+            void applyLightningDamage(Player player, double amount) {
+                // no-op
+            }
+        });
+    }
 
     @Test
     void wardenSpawnAllowedAtTierZero() {

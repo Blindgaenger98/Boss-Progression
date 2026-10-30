@@ -146,6 +146,15 @@ public class BossProgressionPlugin extends JavaPlugin {
         return penaltyApplier;
     }
 
+    /**
+     * Test seam: replaces the penalty applier (e.g. with a subclass that
+     * no-ops {@code strikeLightning}, since MockBukkit's WorldMock does not
+     * implement {@code strikeLightningEffect}).
+     */
+    public void setPenaltyApplier(PenaltyApplier penaltyApplier) {
+        this.penaltyApplier = penaltyApplier;
+    }
+
     public StructureEventListener structureEventListener() {
         return structureEventListener;
     }

@@ -3,9 +3,13 @@ package com.example.bossprogression.progression;
 import com.example.bossprogression.BossProgressionPlugin;
 import com.example.bossprogression.config.BossTier;
 import com.example.bossprogression.config.PenaltyConfig;
+import io.papermc.paper.registry.keys.DamageTypeKeys;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.damage.DamageSource;
+import org.bukkit.damage.DamageType;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -23,8 +27,14 @@ import java.util.concurrent.ConcurrentHashMap;
  * was applied, further penalties for the same player are skipped (checked after
  * the admin exemption, before any effect is applied). Timestamps use the server
  * tick counter so the cooldown is deterministic and testable.</p>
+ *
+ * <p>Not final: {@link #applyLightningDamage(Player, double)} and
+ * {@link #strikeLightning(Player)} are package-private test seams that
+ * subclasses can override (MockBukkit's {@code LivingEntityMock} does not
+ * implement {@code damage(double, DamageSource)} and {@code WorldMock} does
+ * not implement {@code strikeLightningEffect}).</p>
  */
-public final class PenaltyApplier {
+public class PenaltyApplier {
 
     private final BossProgressionPlugin plugin;
 
@@ -72,14 +82,40 @@ public final class PenaltyApplier {
                 PotionEffectType.SLOWNESS, penalty.getEffectDurationTicks(),
                 Math.max(0, penalty.getSlownessAmplifier()), false, false, true));
 
-        double maxHealth = player.getAttribute(Attribute.MAX_HEALTH).getValue();
-        player.damage(maxHealth * (penalty.getLightningDamagePercent() / 100.0));
+        AttributeInstance maxHealth = player.getAttribute(Attribute.MAX_HEALTH);
+        if (maxHealth != null) {
+            applyLightningDamage(player, maxHealth.getValue() * (penalty.getLightningDamagePercent() / 100.0));
+        }
         // Visual lightning strike at the player.
-        player.getWorld().strikeLightningEffect(player.getLocation());
+        strikeLightning(player);
 
         plugin.messages().send(player, "premature-attempt.spawn-cancelled");
         player.sendActionBar(LegacyComponentSerializer.legacySection()
                 .deserialize(plugin.messages().plain("premature-attempt.penalty-applied")));
+    }
+
+    /**
+     * Deals the lightning damage for the penalty. The {@code DamageType} is
+     * resolved from the server registry: {@link DamageTypeKeys#LIGHTNING_BOLT}
+     * matches the penalty's lightning theme and is the semantically exact
+     * Paper-26.3 constant for lightning-bolt damage. Package-private and
+     * overridable so tests can stub it (MockBukkit's {@code LivingEntityMock}
+     * does not implement {@code damage(double, DamageSource)}).
+     */
+    void applyLightningDamage(Player player, double amount) {
+        DamageType type = plugin.getServer().getRegistry(DamageType.class)
+                .getOrThrow(DamageTypeKeys.LIGHTNING_BOLT);
+        DamageSource source = DamageSource.builder(type).build();
+        player.damage(amount, source);
+    }
+
+    /**
+     * Visual lightning strike at the player. Package-private and overridable so
+     * tests can stub it (MockBukkit's {@code WorldMock} does not implement
+     * {@code strikeLightningEffect}).
+     */
+    void strikeLightning(Player player) {
+        player.getWorld().strikeLightningEffect(player.getLocation());
     }
 
     /**

@@ -16,6 +16,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.Raid;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.event.RaidMock;
 
@@ -28,6 +29,23 @@ import java.util.Map;
 class RaidEventListenerTest extends PluginTestBase {
 
     private static final int RAID_TIER = 4;
+
+    @BeforeEach
+    void installNoopPenaltyApplier() {
+        // WorldMock does not implement strikeLightningEffect and LivingEntityMock
+        // does not implement damage(double, DamageSource); stub both seams.
+        plugin.setPenaltyApplier(new PenaltyApplier(plugin) {
+            @Override
+            void strikeLightning(Player player) {
+                // no-op
+            }
+
+            @Override
+            void applyLightningDamage(Player player, double amount) {
+                // no-op
+            }
+        });
+    }
 
     private void setupRaidTier() {
         plugin.getConfig().set("boss-tiers.town-raid", Map.of(

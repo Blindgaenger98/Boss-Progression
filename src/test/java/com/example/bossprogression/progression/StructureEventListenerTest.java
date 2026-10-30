@@ -18,6 +18,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffectType;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
@@ -33,6 +34,23 @@ class StructureEventListenerTest extends PluginTestBase {
 
     // Must stay contiguous with the default tiers 1-3 in config.yml (tier numbers are 1..N).
     private static final int STRUCTURE_TIER = 4;
+
+    @BeforeEach
+    void installNoopPenaltyApplier() {
+        // WorldMock does not implement strikeLightningEffect and LivingEntityMock
+        // does not implement damage(double, DamageSource); stub both seams.
+        plugin.setPenaltyApplier(new PenaltyApplier(plugin) {
+            @Override
+            void strikeLightning(Player player) {
+                // no-op
+            }
+
+            @Override
+            void applyLightningDamage(Player player, double amount) {
+                // no-op
+            }
+        });
+    }
 
     private void setupStructureTier() {
         plugin.getConfig().set("boss-tiers.trial-chamber", Map.of(

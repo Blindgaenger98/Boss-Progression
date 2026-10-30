@@ -3,7 +3,10 @@ package com.example.bossprogression.progression;
 import com.example.bossprogression.PluginTestBase;
 import com.example.bossprogression.config.BossTier;
 import com.example.bossprogression.config.PenaltyConfig;
+import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffectType;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -19,6 +22,24 @@ class PenaltyApplierTest extends PluginTestBase {
 
     private BossTier wardenTier() {
         return plugin.configManager().getTier(1);
+    }
+
+    @BeforeEach
+    void installNoopPenaltyApplier() {
+        // WorldMock does not implement strikeLightningEffect and LivingEntityMock
+        // does not implement damage(double, DamageSource); stub both seams.
+        plugin.setPenaltyApplier(new PenaltyApplier(plugin) {
+            @Override
+            void strikeLightning(Player player) {
+                // no-op
+            }
+
+            @Override
+            void applyLightningDamage(Player player, double amount) {
+                // plain overload is implemented in MockBukkit (no DamageSource)
+                player.damage(amount);
+            }
+        });
     }
 
     private int cooldownTicks() {
@@ -71,7 +92,51 @@ class PenaltyApplierTest extends PluginTestBase {
         plugin.penaltyApplier().applyTo(admin, wardenTier());
 
         assertEquals(healthBefore, admin.getHealth(), "admins must never be penalized");
-        assertFalse(admin.hasPotionEffect(org.bukkit.potion.PotionEffectType.WITHER));
-        assertFalse(admin.hasPotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS));
+        assertFalse(admin.hasPotionEffect(PotionEffectType.WITHER));
+        assertFalse(admin.hasPotionEffect(PotionEffectType.SLOWNESS));
+    }
+
+    @Test
+    void strikeLightningIsInvokedWhenPenaltyApplies() {
+        int[] strikes = {0};
+        plugin.setPenaltyApplier(new PenaltyApplier(plugin) {
+            @Override
+            void strikeLightning(Player player) {
+                strikes[0]++;
+            }
+
+            @Override
+            void applyLightningDamage(Player player, double amount) {
+                player.damage(amount);
+            }
+        });
+        PlayerMock player = server.addPlayer("Rusher");
+
+        plugin.penaltyApplier().applyTo(player, wardenTier());
+
+        assertEquals(1, strikes[0], "strikeLightning must be called once per applied penalty");
+        assertTrue(player.hasPotionEffect(PotionEffectType.WITHER));
+    }
+
+    @Test
+    void strikeLightningIsNotInvokedForAdmins() {
+        int[] strikes = {0};
+        plugin.setPenaltyApplier(new PenaltyApplier(plugin) {
+            @Override
+            void strikeLightning(Player player) {
+                strikes[0]++;
+            }
+
+            @Override
+            void applyLightningDamage(Player player, double amount) {
+                player.damage(amount);
+            }
+        });
+        PlayerMock admin = server.addPlayer("Admin");
+        admin.addAttachment(plugin, "bossplugin.admin", true);
+
+        plugin.penaltyApplier().applyTo(admin, wardenTier());
+
+        assertEquals(0, strikes[0], "admins must never trigger the lightning effect");
     }
 }

@@ -2,13 +2,17 @@ package com.example.bossprogression.progression;
 
 import com.example.bossprogression.PluginTestBase;
 import com.example.bossprogression.config.BossTier;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.LivingEntity;
 import org.junit.jupiter.api.Test;
+import org.mockbukkit.mockbukkit.entity.PlayerMock;
 import org.mockbukkit.mockbukkit.entity.ZombieMock;
 
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -93,6 +97,47 @@ class ProgressionManagerTest extends PluginTestBase {
         assertTrue(plugin.dataStore().getDeadPlayers().isEmpty());
     }
 
+    @Test
+    void advanceBroadcastsGlobalMessageViaMessages() {
+        // N2: the announcement must go through Messages (prefix + key lookup),
+        // not a hardcoded chat string.
+        PlayerMock player = server.addPlayer("Watcher");
+        BossTier tier1 = plugin.configManager().getTier(1);
+        assertNotNull(tier1);
+        String raw = plugin.messages().raw("boss-killed.global",
+                Map.of("boss", tier1.displayName(), "tier", "1"));
+        // The message travels as a Component on the wire: Bukkit deserializes the
+        // legacy string and PlayerMock#nextMessage() serializes it back, which
+        // collapses redundant color codes ("&e&5" -> "&5"). Compare against the
+        // same round trip so the assertion matches what the player actually sees.
+        LegacyComponentSerializer legacy = LegacyComponentSerializer.legacySection();
+        String expected = legacy.serialize(legacy.deserialize(raw));
+
+        manager().advance();
+
+        assertEquals(expected, player.nextMessage());
+    }
+    
+    @Test
+    void advanceKeepsBossDisplayNameColorCodes() {
+        // F6: the '&' codes of the configured display name must survive as '§'
+        // codes in both the chat broadcast and the actionbar.
+        PlayerMock player = server.addPlayer("Watcher");
+        BossTier tier1 = plugin.configManager().getTier(1);
+        assertNotNull(tier1);
+        assertTrue(tier1.displayName().startsWith("&"), "test relies on a colored display name");
+    
+        manager().advance();
+    
+        String chat = player.nextMessage();
+        assertTrue(chat.contains("\u00a75\u00a7lThe Warden"),
+                "chat message must carry the translated color codes of the boss name");
+        Component actionbar = player.nextActionBar();
+        assertNotNull(actionbar, "an actionbar must be sent alongside the chat message");
+        assertEquals(chat, LegacyComponentSerializer.legacySection().serialize(actionbar),
+                "actionbar must carry the same message text as the chat broadcast");
+    }
+    
     @Test
     void setTierResetsHardmodeBaseValueCache() {
         // config defaults: multiplier = 1.0 + 0.5 * tier

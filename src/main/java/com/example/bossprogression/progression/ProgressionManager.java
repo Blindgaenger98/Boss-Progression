@@ -58,13 +58,18 @@ public final class ProgressionManager {
         }
         plugin.dataStore().setCurrentBossTier(next);
 
-        String bossName = defeated.displayName().replace('&', '\u00a7');
-        String message = plugin.messages().raw(globalMessageKey(defeated),
-                Map.of("boss", bossName, "tier", String.valueOf(next)));
-
+        Map<String, String> placeholders = Map.of(
+                "boss", defeated.displayName(),
+                "tier", String.valueOf(next));
+        // The chat broadcast goes through Messages; the display name keeps its
+        // '&' codes and is color-translated by Messages#raw itself.
+        plugin.messages().broadcast(globalMessageKey(defeated), placeholders);
+        
+        // Actionbar: the same message text as a legacy-serialized component.
+        Component actionbar = LegacyComponentSerializer.legacySection().deserialize(
+                plugin.messages().raw(globalMessageKey(defeated), placeholders));
         for (var player : plugin.getServer().getOnlinePlayers()) {
-            player.sendMessage(message);
-            player.sendActionBar(LegacyComponentSerializer.legacySection().deserialize(message));
+            player.sendActionBar(actionbar);
         }
 
         plugin.getLogger().info("Progression advanced to tier " + next + " (" + describe(defeated) + ")");

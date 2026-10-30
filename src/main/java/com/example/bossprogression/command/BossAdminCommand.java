@@ -93,13 +93,14 @@ public final class BossAdminCommand implements TabExecutor {
         Location destination = reviveManager.resolveDestination(target, actor);
         ReviveManager.ReviveResult result =
                 reviveManager.revive(target, actor, destination, true);
+        // In force mode the dead/self/item checks are bypassed inside ReviveManager,
+        // so the only outcomes are SUCCESS or NOT_DEAD (teleport failure, Fix-12b).
         switch (result) {
             case NOT_DEAD -> plugin.messages().send(sender, "permadeath.self-already-alive",
                     Map.of("player", target.getName()));
-            case CANNOT_REVIVE_SELF -> plugin.messages().send(sender, "permadeath.cannot-revive-self");
-            case NO_ITEM -> plugin.messages().send(sender, "permadeath.no-item");
             case SUCCESS -> plugin.getLogger().info("Admin " + actor.getName()
                     + " force-revived " + target.getName());
+            default -> plugin.getLogger().warning("Unexpected revive result in force mode: " + result);
         }
     }
 
@@ -109,8 +110,8 @@ public final class BossAdminCommand implements TabExecutor {
             return;
         }
         Player player = (Player) sender;
+        // DataStore#setAltarLocation already marks the store dirty.
         plugin.dataStore().setAltarLocation(player.getLocation());
-        plugin.dataStore().markDirty();
         plugin.messages().send(sender, "altar.set", Map.of(
                 "x", String.valueOf(Math.round(player.getLocation().getX())),
                 "y", String.valueOf(Math.round(player.getLocation().getY())),

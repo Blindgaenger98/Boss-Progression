@@ -4,7 +4,8 @@ import com.example.bossprogression.BossProgressionPlugin;
 import com.example.bossprogression.config.BossTier;
 import org.bukkit.Location;
 import org.bukkit.Particle;
-import org.bukkit.Sound;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.GameMode;
@@ -36,8 +37,8 @@ public final class ReviveManager {
         NO_ITEM
     }
 
-    private static final int INVULNERABILITY_TICKS = 10 * 20; // 10 seconds
-    private static final int REGENERATION_TICKS = 10 * 20;    // 10 seconds
+    private static final int REGENERATION_TICKS = 10 * 20; // 10 seconds
+    private static final int SPEED_BUFF_TICKS = 5 * 20;    // 5 seconds
 
     private final BossProgressionPlugin plugin;
     private final ReviveItemValidator validator;
@@ -96,19 +97,31 @@ public final class ReviveManager {
 
         Location destination = location != null ? location.clone() : target.getLocation();
 
-        plugin.dataStore().markAlive(target.getUniqueId());
         target.setGameMode(GameMode.SURVIVAL);
-        target.setHealth(target.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue());
+        AttributeInstance maxHealth = target.getAttribute(Attribute.MAX_HEALTH);
+        if (maxHealth != null) {
+            target.setHealth(maxHealth.getValue());
+        }
         target.setFoodLevel(20);
-        target.addPotionEffect(new PotionEffect(PotionEffectType.getByName("REGENERATION"),
+        target.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION,
                 REGENERATION_TICKS, 1, true, true, true));
-        target.addPotionEffect(new PotionEffect(PotionEffectType.getByName("SPEED"),
-                INVULNERABILITY_TICKS / 2, 0, true, true, true));
+        target.addPotionEffect(new PotionEffect(PotionEffectType.SPEED,
+                SPEED_BUFF_TICKS, 0, true, true, true));
         target.setFireTicks(0);
-        target.teleport(destination, PlayerTeleportEvent.TeleportCause.PLUGIN);
+
+        // The teleport must succeed before the player is marked alive; otherwise
+        // the player would be counted as revived while stranded at the old location.
+        if (!target.teleport(destination, PlayerTeleportEvent.TeleportCause.PLUGIN)) {
+            plugin.getLogger().log(Level.WARNING,
+                    "Revive teleport for {0} to world {1} failed; player was not marked alive",
+                    new String[] { target.getName(), destination.getWorld().getName() });
+            return ReviveResult.NOT_DEAD;
+        }
+
+        plugin.dataStore().markAlive(target.getUniqueId());
 
         // Visual feedback at the destination.
-        destination.getWorld().playSound(destination, Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 1.0f);
+        destination.getWorld().playSound(destination, "entity.ender_dragon.growl", 1.0f, 1.0f);
         destination.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, destination, 60, 0.5, 0.5, 0.5, 0.2);
 
         // Notifications.
@@ -141,7 +154,9 @@ public final class ReviveManager {
      */
     public Location resolveDestination(Player target, Player actor) {
         Location altar = plugin.dataStore().getAltarLocation();
-        if (altar != null && altar.getWorld() != null) {
+        if (altar != null && altar.getWorld() != null
+                && target.getWorld() != null
+                && altar.getWorld().equals(target.getWorld())) {
             return altar;
         }
         if (actor != null) {

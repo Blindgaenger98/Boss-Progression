@@ -42,8 +42,8 @@ structure:
 
 permadeath:
   death-message: "&cYou have died and are now a ghost. Wait for a teammate to revive you."
-  revived: "&aYou have been revived! Brief invulnerability and regeneration granted."
-  revived-by: "&a{player} has been revived at the altar."
+  revived: "&aYou have been revived! Brief speed and regeneration granted."
+  revived-by: "&a{player} has been revived."
   no-item: "&cYou don't have the required revive item for the current tier."
   no-dead-players: "&cThere are no fallen players to revive."
   self-already-alive: "&c{player} is not dead."

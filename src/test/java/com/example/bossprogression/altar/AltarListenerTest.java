@@ -2,6 +2,7 @@ package com.example.bossprogression.altar;
 
 import com.example.bossprogression.PluginTestBase;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -20,6 +21,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -106,7 +108,7 @@ class AltarListenerTest extends PluginTestBase {
         PlayerInteractEvent event = rightClick(player, stone);
 
         assertFalse(event.isCancelled(), "a non-altar block must not be cancelled");
-        player.assertNoMoreSaid();
+        assertNull(player.nextComponentMessage());
         assertFalse(hasAltarGui(player), "no GUI may open for a non-altar block material");
     }
 
@@ -120,9 +122,10 @@ class AltarListenerTest extends PluginTestBase {
         PlayerInteractEvent event = rightClick(player, altarBlock());
 
         assertTrue(event.isCancelled(), "the interact must be cancelled without permission");
-        assertEquals(plugin.messages().raw("no-permission"), player.nextMessage(),
-                "the no-permission message must be sent");
-        player.assertNoMoreSaid();
+        assertEquals(LegacyComponentSerializer.legacySection()
+                        .deserialize(plugin.messages().raw("no-permission")),
+                player.nextComponentMessage(), "the no-permission message must be sent");
+        assertNull(player.nextComponentMessage());
         assertFalse(hasAltarGui(player), "no GUI may open without permission");
     }
 
@@ -136,9 +139,10 @@ class AltarListenerTest extends PluginTestBase {
 
         rightClick(player, altarBlock());
 
-        assertEquals(plugin.messages().raw("altar.not-set"), player.nextMessage(),
-                "the altar.not-set message must be sent");
-        player.assertNoMoreSaid();
+        assertEquals(LegacyComponentSerializer.legacySection()
+                        .deserialize(plugin.messages().raw("altar.not-set")),
+                player.nextComponentMessage(), "the altar.not-set message must be sent");
+        assertNull(player.nextComponentMessage());
         assertFalse(hasAltarGui(player), "no GUI may open without a registered altar");
     }
 
@@ -172,7 +176,8 @@ class AltarListenerTest extends PluginTestBase {
         assertEquals(baseline + 1, pendingPluginTasks().size(),
                 "opening the GUI must schedule the auto-close task");
 
-        server.getPluginManager().callEvent(new PlayerQuitEvent(player, Component.text("quit")));
+        server.getPluginManager().callEvent(new PlayerQuitEvent(player, Component.text("quit"),
+                PlayerQuitEvent.QuitReason.DISCONNECTED));
 
         assertEquals(baseline, pendingPluginTasks().size(),
                 "quitting must cancel the auto-close task (no task left behind)");

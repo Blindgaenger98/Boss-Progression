@@ -9,7 +9,7 @@ softdepend: [MythicMobs]
 commands:
   boss:
     description: Show boss progression status.
-    usage: /<command> status
+    usage: /<command>
   altar:
     description: Show the coordinates of the revive altar.
     usage: /<command>

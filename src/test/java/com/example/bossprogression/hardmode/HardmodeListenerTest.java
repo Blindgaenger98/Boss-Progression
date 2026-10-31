@@ -9,6 +9,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +23,7 @@ class HardmodeListenerTest extends PluginTestBase {
         Player player = server.addPlayer("HungryHero");
         player.setFoodLevel(19);
 
-        server.getPluginManager().callEvent(new FoodLevelChangeEvent(player, 20));
+        server.getPluginManager().callEvent(new FoodLevelChangeEvent(player, 20, null));
 
         assertEquals(19, player.getFoodLevel());
     }
@@ -35,7 +36,7 @@ class HardmodeListenerTest extends PluginTestBase {
 
         Player player = server.addPlayer("FullHero");
         player.setFoodLevel(19);
-        FoodLevelChangeEvent event = new FoodLevelChangeEvent(player, 20);
+        FoodLevelChangeEvent event = new FoodLevelChangeEvent(player, 20, null);
         server.getPluginManager().callEvent(event);
         // simulate the server applying the (uncancelled) event result
         player.setFoodLevel(event.getFoodLevel());
@@ -47,7 +48,7 @@ class HardmodeListenerTest extends PluginTestBase {
     void foodDecreaseIsNotInterfered() {
         Player player = server.addPlayer("StarvingHero");
         player.setFoodLevel(10);
-        FoodLevelChangeEvent event = new FoodLevelChangeEvent(player, 9);
+        FoodLevelChangeEvent event = new FoodLevelChangeEvent(player, 9, null);
 
         server.getPluginManager().callEvent(event);
         player.setFoodLevel(event.getFoodLevel());
@@ -64,7 +65,7 @@ class HardmodeListenerTest extends PluginTestBase {
         Player player = server.addPlayer("AppleEater");
         ItemStack apple = new ItemStack(Material.GOLDEN_APPLE);
         player.getInventory().setItemInMainHand(apple);
-        PlayerItemConsumeEvent event = new PlayerItemConsumeEvent(player, apple);
+        PlayerItemConsumeEvent event = new PlayerItemConsumeEvent(player, apple, EquipmentSlot.HAND);
 
         server.getPluginManager().callEvent(event);
 
@@ -76,7 +77,7 @@ class HardmodeListenerTest extends PluginTestBase {
         Player player = server.addPlayer("AppleLover");
         ItemStack apple = new ItemStack(Material.GOLDEN_APPLE);
         player.getInventory().setItemInMainHand(apple);
-        PlayerItemConsumeEvent event = new PlayerItemConsumeEvent(player, apple);
+        PlayerItemConsumeEvent event = new PlayerItemConsumeEvent(player, apple, EquipmentSlot.HAND);
 
         server.getPluginManager().callEvent(event);
 

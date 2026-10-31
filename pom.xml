@@ -17,6 +17,7 @@
         <maven.compiler.release>25</maven.compiler.release>
         <paper.api.version>26.3.build.200-stable</paper.api.version>
         <mockbukkit.version>4.118.0</mockbukkit.version>
+        <junit.version>6.1.3</junit.version>
     </properties>
 
     <repositories>
@@ -45,7 +46,7 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>6.1.3</version>
+            <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

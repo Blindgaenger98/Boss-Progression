@@ -3,17 +3,15 @@ package com.example.bossprogression.command;
 import com.example.bossprogression.BossProgressionPlugin;
 import com.example.bossprogression.config.BossTier;
 import com.example.bossprogression.revive.ReviveItemValidator;
-import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 
 /**
- * /boss status - shows the current progression state.
+ * /boss - shows the current progression state.
  */
 public final class BossStatusCommand implements TabExecutor {
 
@@ -56,15 +54,9 @@ public final class BossStatusCommand implements TabExecutor {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (args.length == 1) {
-            String prefix = args[0].toLowerCase(Locale.ROOT);
-            List<String> suggestions = new java.util.ArrayList<>();
-            for (BossTier tier : plugin.configManager().getBossTiers()) {
-                if (tier.displayName().toLowerCase(Locale.ROOT).startsWith(prefix)) {
-                    suggestions.add(tier.displayName());
-                }
-            }
-            return suggestions;
+        // /boss takes no arguments - offer no suggestions (permission-gated like onCommand).
+        if (!sender.hasPermission("bossplugin.status")) {
+            return Collections.emptyList();
         }
         return Collections.emptyList();
     }

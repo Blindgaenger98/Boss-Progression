@@ -1,6 +1,7 @@
 package com.example.bossprogression.command;
 
 import com.example.bossprogression.PluginTestBase;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -14,6 +15,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -42,8 +44,10 @@ class BossAdminCommandTest extends PluginTestBase {
 
         CommandResult result = runReload(player);
 
-        assertEquals(plugin.messages().raw("reloaded"), result.getSender().nextMessage());
-        result.getSender().assertNoMoreSaid();
+        assertEquals(LegacyComponentSerializer.legacySection()
+                        .deserialize(plugin.messages().raw("reloaded")),
+                result.getSender().nextComponentMessage());
+        assertNull(result.getSender().nextComponentMessage());
     }
 
     @Test
@@ -56,8 +60,10 @@ class BossAdminCommandTest extends PluginTestBase {
 
         CommandResult result = runReload(player);
 
-        assertEquals(plugin.messages().raw("admin.reload-failed"), result.getSender().nextMessage());
-        result.getSender().assertNoMoreSaid(); // no success message may follow the failure message
+        assertEquals(LegacyComponentSerializer.legacySection()
+                        .deserialize(plugin.messages().raw("admin.reload-failed")),
+                result.getSender().nextComponentMessage());
+        assertNull(result.getSender().nextComponentMessage()); // no success message may follow the failure message
         // And the previously loaded configuration must still be intact.
         assertFalse(plugin.configManager().getBossTiers().isEmpty());
         assertEquals("WARDEN", String.valueOf(plugin.configManager().getTier(1).entityType()));
@@ -77,11 +83,11 @@ class BossAdminCommandTest extends PluginTestBase {
                 "target must be marked alive after a successful force revive");
         // No player-facing message for a successful force revive (log-only path);
         // the only messages are the standard revived announcements from ReviveManager.
-        assertEquals(plugin.messages().raw("permadeath.revived-by",
-                Map.of("player", "LivingTarget")), admin.nextMessage());
-        assertEquals(plugin.messages().raw("permadeath.revived"),
-                target.nextMessage());
-        admin.assertNoMoreSaid();
+        assertEquals(LegacyComponentSerializer.legacySection().deserialize(plugin.messages().raw(
+                "permadeath.revived-by", Map.of("player", "LivingTarget"))), admin.nextComponentMessage());
+        assertEquals(LegacyComponentSerializer.legacySection().deserialize(plugin.messages().raw(
+                "permadeath.revived")), target.nextComponentMessage());
+        assertNull(admin.nextComponentMessage());
     }
 
     @Test
@@ -104,9 +110,9 @@ class BossAdminCommandTest extends PluginTestBase {
 
         assertTrue(plugin.dataStore().isDead(target.getUniqueId()),
                 "a failed teleport must not mark the target alive");
-        assertEquals(plugin.messages().raw("permadeath.self-already-alive",
-                Map.of("player", "Stranded")), admin.nextMessage());
-        admin.assertNoMoreSaid();
+        assertEquals(LegacyComponentSerializer.legacySection().deserialize(plugin.messages().raw(
+                "permadeath.self-already-alive", Map.of("player", "Stranded"))), admin.nextComponentMessage());
+        assertNull(admin.nextComponentMessage());
     }
 
     @Test
@@ -119,8 +125,10 @@ class BossAdminCommandTest extends PluginTestBase {
 
         CommandResult result = runReload(player);
 
-        assertEquals(plugin.messages().raw("admin.reload-failed"), result.getSender().nextMessage());
-        result.getSender().assertNoMoreSaid();
+        assertEquals(LegacyComponentSerializer.legacySection()
+                        .deserialize(plugin.messages().raw("admin.reload-failed")),
+                result.getSender().nextComponentMessage());
+        assertNull(result.getSender().nextComponentMessage());
     }
 
     @Test
@@ -137,8 +145,8 @@ class BossAdminCommandTest extends PluginTestBase {
 
         assertFalse(plugin.dataStore().isDead(target.getUniqueId()),
                 "force revive via the central ReviveManager must mark the target alive");
-        assertEquals(plugin.messages().raw("permadeath.revived-by",
-                Map.of("player", "CentralTarget")), admin.nextMessage());
-        admin.assertNoMoreSaid();
+        assertEquals(LegacyComponentSerializer.legacySection().deserialize(plugin.messages().raw(
+                "permadeath.revived-by", Map.of("player", "CentralTarget"))), admin.nextComponentMessage());
+        assertNull(admin.nextComponentMessage());
     }
 }

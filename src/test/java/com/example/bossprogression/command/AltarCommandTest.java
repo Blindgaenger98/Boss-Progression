@@ -1,6 +1,7 @@
 package com.example.bossprogression.command;
 
 import com.example.bossprogression.PluginTestBase;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Location;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.command.CommandResult;
@@ -9,6 +10,7 @@ import org.mockbukkit.mockbukkit.entity.PlayerMock;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * Tests for {@link AltarCommand}.
@@ -41,8 +43,10 @@ class AltarCommandTest extends PluginTestBase {
 
         CommandResult result = runAltar(player);
 
-        assertEquals(plugin.messages().raw("no-permission"), result.getSender().nextMessage());
-        result.getSender().assertNoMoreSaid(); // no location message must leak
+        assertEquals(LegacyComponentSerializer.legacySection()
+                        .deserialize(plugin.messages().raw("no-permission")),
+                result.getSender().nextComponentMessage());
+        assertNull(result.getSender().nextComponentMessage()); // no location message must leak
     }
 
     @Test
@@ -54,8 +58,10 @@ class AltarCommandTest extends PluginTestBase {
 
         CommandResult result = runAltar(player);
 
-        assertEquals(plugin.messages().raw("no-permission"), result.getSender().nextMessage());
-        result.getSender().assertNoMoreSaid();
+        assertEquals(LegacyComponentSerializer.legacySection()
+                        .deserialize(plugin.messages().raw("no-permission")),
+                result.getSender().nextComponentMessage());
+        assertNull(result.getSender().nextComponentMessage());
     }
 
     @Test
@@ -66,10 +72,10 @@ class AltarCommandTest extends PluginTestBase {
 
         CommandResult result = runAltar(player);
 
-        assertEquals(plugin.messages().raw("altar.location", Map.of(
-                "world", "world", "x", "0", "y", "64", "z", "0")),
-                result.getSender().nextMessage());
-        result.getSender().assertNoMoreSaid();
+        assertEquals(LegacyComponentSerializer.legacySection().deserialize(plugin.messages().raw(
+                "altar.location", Map.of("world", "world", "x", "0", "y", "64", "z", "0"))),
+                result.getSender().nextComponentMessage());
+        assertNull(result.getSender().nextComponentMessage());
     }
 
     @Test
@@ -79,7 +85,9 @@ class AltarCommandTest extends PluginTestBase {
 
         CommandResult result = runAltar(player);
 
-        assertEquals(plugin.messages().raw("altar.not-set"), result.getSender().nextMessage());
-        result.getSender().assertNoMoreSaid();
+        assertEquals(LegacyComponentSerializer.legacySection()
+                        .deserialize(plugin.messages().raw("altar.not-set")),
+                result.getSender().nextComponentMessage());
+        assertNull(result.getSender().nextComponentMessage());
     }
 }

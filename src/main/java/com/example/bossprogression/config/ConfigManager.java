@@ -166,6 +166,10 @@ public final class ConfigManager {
             int cmd = itemSec.getInt("custom-model-data", 0);
             String itemName = itemSec.getString("display-name", "&aRevive Item");
             String pdcKey = itemSec.getString("pdc-key", "");
+            if (!pdcKey.matches("^[a-z0-9_\\-]+$")) {
+                throw new IllegalArgumentException(
+                        "boss-tiers." + key + ": 'pdc-key' must be non-empty and match ^[a-z0-9_-]+$");
+            }
             String pdcValue = itemSec.getString("pdc-value", "tier" + tierNumber);
 
             tiers.add(new BossTier(tierNumber, type, entityType, id, displayName,

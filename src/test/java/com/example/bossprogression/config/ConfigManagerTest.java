@@ -94,5 +94,23 @@ class ConfigManagerTest extends PluginTestBase {
         assertEquals(EntityType.ENDER_DRAGON, plugin.configManager().getTier(3).entityType());
     }
 
-}
+    @Test
+    void emptyPdcKeyCausesLoadToFailKeepingPreviousConfiguration() {
+        plugin.getConfig().set("boss-tiers.warden.revive-item.pdc-key", "");
+        plugin.saveConfig();
 
+        assertFalse(plugin.configManager().load(), "load must fail on an empty pdc-key");
+
+        // Previously loaded configuration retained unchanged.
+        assertEquals(EntityType.WARDEN, plugin.configManager().getTier(1).entityType());
+    }
+
+    @Test
+    void validPdcKeyIsAcceptedOnReload() {
+        plugin.getConfig().set("boss-tiers.warden.revive-item.pdc-key", "valid_key");
+        plugin.saveConfig();
+
+        assertTrue(plugin.configManager().load(), "load must succeed for a valid pdc-key");
+    }
+
+}

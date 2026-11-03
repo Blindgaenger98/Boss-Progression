@@ -64,7 +64,9 @@ class ConfigManagerPhase2Test extends PluginTestBase {
         setTier("town-raid", Map.of(
                 "tier", 4,
                 "type", "RAID",
-                "revive-item", Map.of("material", "EMERALD")));
+                "revive-item", Map.of(
+                        "material", "EMERALD",
+                        "pdc-key", "revive")));
 
         BossTier tier = plugin.configManager().getTier(4);
         assertNotNull(tier);
@@ -74,16 +76,16 @@ class ConfigManagerPhase2Test extends PluginTestBase {
     @Test
     void structureClearTierIsParsed() {
         setTier("trial-chamber", Map.of(
-                "tier", 5,
+                "tier", 4,
                 "type", "STRUCTURE_CLEAR",
                 "structure-kind", "TRIAL_CHAMBER",
                 "required-spawner-clears", 2,
                 "revive-item", Map.of(
                         "material", "TRIAL_KEY",
                         "pdc-key", "revive",
-                        "pdc-value", "tier5")));
+                        "pdc-value", "tier4")));
 
-        BossTier tier = plugin.configManager().getTier(5);
+        BossTier tier = plugin.configManager().getTier(4);
         assertNotNull(tier);
         assertEquals(TierType.STRUCTURE_CLEAR, tier.type());
         assertNull(tier.entityType());
@@ -94,13 +96,15 @@ class ConfigManagerPhase2Test extends PluginTestBase {
     @Test
     void structureKindTempleIsAccepted() {
         setTier("temple", Map.of(
-                "tier", 5,
+                "tier", 4,
                 "type", "STRUCTURE_CLEAR",
                 "structure-kind", "TEMPLE",
                 "required-spawner-clears", 1,
-                "revive-item", Map.of("material", "EMERALD")));
+                "revive-item", Map.of(
+                        "material", "EMERALD",
+                        "pdc-key", "revive")));
 
-        BossTier tier = plugin.configManager().getTier(5);
+        BossTier tier = plugin.configManager().getTier(4);
         assertNotNull(tier);
         assertEquals(StructureKind.TEMPLE, tier.structureKind());
     }

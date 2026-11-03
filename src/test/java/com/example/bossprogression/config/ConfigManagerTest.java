@@ -5,6 +5,9 @@ import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
+import java.nio.file.Files;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -111,6 +114,17 @@ class ConfigManagerTest extends PluginTestBase {
         plugin.saveConfig();
 
         assertTrue(plugin.configManager().load(), "load must succeed for a valid pdc-key");
+    }
+
+    @Test
+    void corruptYamlCausesLoadToFailKeepingPreviousConfiguration() throws Exception {
+        File config = new File(plugin.getDataFolder(), "config.yml");
+        Files.writeString(config.toPath(), "boss-tiers: [unclosed");
+
+        assertFalse(plugin.configManager().load(), "load must fail on a corrupt config.yml");
+
+        // Previously loaded configuration retained unchanged.
+        assertEquals(3, plugin.configManager().getBossTiers().size());
     }
 
 }

@@ -4,8 +4,10 @@ import com.example.bossprogression.BossProgressionPlugin;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -46,6 +48,16 @@ public final class ConfigManager {
      *         validation failed (previous values are retained)
      */
     public boolean load() {
+        // Pre-parse the YAML before reloadConfig() so a syntactically corrupt
+        // config.yml cannot throw an unhandled exception into the command
+        // handler; the previously loaded configuration is retained.
+        try {
+            YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "config.yml"));
+        } catch (Exception e) {
+            plugin.getLogger().severe("Configuration reload failed: config.yml could not be parsed ("
+                    + e.getMessage() + ") - previously loaded configuration retained.");
+            return false;
+        }
         plugin.reloadConfig();
         FileConfiguration cfg = plugin.getConfig();
 

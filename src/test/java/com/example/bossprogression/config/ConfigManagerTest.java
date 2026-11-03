@@ -77,4 +77,22 @@ class ConfigManagerTest extends PluginTestBase {
         assertEquals(Material.OBSIDIAN, plugin.configManager().getAltarConfig().getAltarBlock());
     }
 
+    @Test
+    void tierGapCausesLoadToFailKeepingPreviousConfiguration() {
+        // Baseline: contiguous tiers 1..3.
+        assertEquals(EntityType.ENDER_DRAGON, plugin.configManager().getTier(3).entityType());
+        assertEquals(3, plugin.configManager().getBossTiers().size());
+
+        // Introduce a gap: tiers become 1, 2, 4.
+        plugin.getConfig().set("boss-tiers.dragon.tier", 4);
+        plugin.saveConfig();
+
+        assertFalse(plugin.configManager().load(), "load must fail on a tier gap");
+
+        // Previously loaded configuration retained unchanged.
+        assertEquals(3, plugin.configManager().getBossTiers().size());
+        assertEquals(EntityType.ENDER_DRAGON, plugin.configManager().getTier(3).entityType());
+    }
+
 }
+

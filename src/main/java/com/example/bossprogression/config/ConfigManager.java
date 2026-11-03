@@ -177,6 +177,12 @@ public final class ConfigManager {
         if (tiers.size() != tiers.stream().map(BossTier::tierNumber).distinct().count()) {
             throw new IllegalArgumentException("boss-tiers: duplicate tier numbers detected");
         }
+        for (int i = 0; i < tiers.size(); i++) {
+            if (tiers.get(i).tierNumber() != i + 1) {
+                throw new IllegalArgumentException(
+                        "boss-tiers: tier gap detected (expected tier " + (i + 1) + " but found " + tiers.get(i).tierNumber() + ")");
+            }
+        }
         return Collections.unmodifiableList(tiers);
     }
 
